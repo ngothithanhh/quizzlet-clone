@@ -15,31 +15,31 @@ public class JwtUtil {
     @Value("${app.jwt.secret}")
     private String secret;
 
-    @Value("${app.jwt.expiration}")
+    @Value("${app.jwt.expiration}") // ms
     private long expiration;
 
     private SecretKey getKey() {
         return Keys.hmacShaKeyFor(secret.getBytes());
     }
 
-    // tạo token
-    public String generateToken(String username) {
+    // Tạo token từ email
+    public String generateToken(String email) {
         return Jwts.builder()
-                .setSubject(username)
+                .setSubject(email) // dùng email làm subject
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + expiration))
                 .signWith(getKey())
                 .compact();
     }
 
-    // lấy username
-    public String extractUsername(String token) {
+    // Lấy email từ token
+    public String extractEmail(String token) {
         return extractClaims(token).getSubject();
     }
 
-    // validate
-    public boolean validateToken(String token, String username) {
-        return username.equals(extractUsername(token))
+    // Validate token dựa trên email
+    public boolean validateToken(String token, String email) {
+        return email.equals(extractEmail(token))
                 && !isTokenExpired(token);
     }
 
