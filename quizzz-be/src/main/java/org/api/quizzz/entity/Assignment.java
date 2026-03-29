@@ -1,4 +1,5 @@
 package org.api.quizzz.entity;
+
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -7,7 +8,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
-@Table(name = "ASSIGNMENTS")
+@Table(name = "assignments")
 @Getter
 @Setter
 @Builder
@@ -16,23 +17,34 @@ import java.util.List;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class Assignment extends BaseEntity {
 
-    @Column(name = "TITLE")
-    String title;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "class_id", nullable = false)
+    Classroom classroom;
 
-    @Column(name = "DESCRIPTION")
-    String description;
-
-    @Column(name = "DUE_DATE")
-    LocalDateTime dueDate;
-
-    @ManyToOne
-    @JoinColumn(name = "CLASS_ID")
-    ClassEntity classEntity;
-
-    @ManyToOne
-    @JoinColumn(name = "STUDY_SET_ID")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "study_set_id", nullable = false)
     StudySet studySet;
 
-    @OneToMany(mappedBy = "assignment")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "assigned_by")
+    User assignedBy;
+
+    @Column(name = "title", length = 255)
+    String title;
+
+    @Column(name = "description", columnDefinition = "TEXT")
+    String description;
+
+    @Column(name = "due_date")
+    LocalDateTime dueDate;
+
+    @OneToMany(mappedBy = "assignment", cascade = CascadeType.ALL, orphanRemoval = true)
     List<AssignmentSubmission> submissions;
+
+    @PrePersist
+    public void prePersistAssignment() {
+        super.prePersist();
+    }
+
+
 }

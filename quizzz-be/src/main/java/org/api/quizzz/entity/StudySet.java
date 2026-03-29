@@ -1,12 +1,15 @@
 package org.api.quizzz.entity;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import java.util.List;
+import java.util.Set;
 
 @Entity
-@Table(name = "STUDY_SETS")
+@Table(name = "study_sets")
 @Getter
 @Setter
 @Builder
@@ -15,27 +18,52 @@ import java.util.List;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class StudySet extends BaseEntity {
 
-    @Column(name = "TITLE")
+    @Column(name = "title", nullable = false, length = 255)
     String title;
 
-    @Column(name = "DESCRIPTION")
+    @Column(name = "description", columnDefinition = "TEXT")
     String description;
 
-    @Column(name = "IS_PUBLIC")
+    @Column(name = "is_public")
     Boolean isPublic;
 
-    @ManyToOne
-    @JoinColumn(name = "USER_ID")
+    @JsonIgnore
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
     User user;
 
-    @OneToMany(mappedBy = "studySet", cascade = CascadeType.ALL)
+    @PrePersist
+    public void prePersistStudySet() {
+        super.prePersist();
+
+        if (this.isPublic == null) {
+            this.isPublic = true;
+        }
+    }
+
+    @OneToMany(mappedBy = "studySet", cascade = CascadeType.ALL, orphanRemoval = true)
     List<Flashcard> flashcards;
 
     @ManyToMany
     @JoinTable(
-            name = "FOLDER_STUDY_SETS",
-            joinColumns = @JoinColumn(name = "STUDY_SET_ID"),
-            inverseJoinColumns = @JoinColumn(name = "FOLDER_ID")
+            name = "study_set_classes",
+            joinColumns = @JoinColumn(name = "study_set_id"),
+            inverseJoinColumns = @JoinColumn(name = "class_id")
     )
-    List<Folder> folders;
+    Set<Classroom> classrooms;
+
+    @OneToMany(mappedBy = "studySet")
+    List<Favorite> favorites;
+
+    @OneToMany(mappedBy = "studySet")
+    List<FolderStudySet> folderStudySets;
+
+    @OneToMany(mappedBy = "studySet")
+    List<Assignment> assignments;
+
+    @OneToMany(mappedBy = "studySet")
+    List<StudySession> studySessions;
+
+
+
 }

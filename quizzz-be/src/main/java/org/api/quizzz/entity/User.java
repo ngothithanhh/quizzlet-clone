@@ -7,7 +7,7 @@ import lombok.experimental.FieldDefaults;
 import java.util.List;
 
 @Entity
-@Table(name = "USERS")
+@Table(name = "users")
 @Getter
 @Setter
 @Builder
@@ -15,34 +15,58 @@ import java.util.List;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class User extends BaseEntity {
-    @Column(name = "USERNAME")
+
+    @Column(name = "username", nullable = false, length = 100)
     String username;
 
-    @Column(name = "EMAIL", unique = true)
+    @Column(name = "email", nullable = false, unique = true, length = 150)
     String email;
 
-    @Column(name = "PASSWORD")
+    @Column(name = "password", nullable = false, length = 255)
     String password;
 
-    @Column(name = "AVATAR_URL")
+    @Column(name = "avatar_url", columnDefinition = "TEXT")
     String avatarUrl;
 
-    // 🔥 thêm role
-    @Column(name = "ROLE")
-    String role; // USER, ADMIN
+    @Column(name = "is_verified")
+    Boolean isVerified = false;
 
-    // 🔥 phân biệt login kiểu gì
-    @Column(name = "PROVIDER")
-    String provider; // LOCAL, GOOGLE
+    @PrePersist
+    public void prePersistUser() {
+        if (this.isVerified == null) {
+            this.isVerified = false;
+        }
+    }
 
-    @Column(name = "IS_VERIFIED")
-    Boolean isVerified;
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    List<Folder> folders;
 
-    // 1 user có nhiều study set
-    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "user")
+    List<RefreshToken> refreshTokens;
+
+    @OneToMany(mappedBy = "user")
     List<StudySet> studySets;
 
-    // many-to-many với class
-    @ManyToMany(mappedBy = "members", fetch = FetchType.LAZY)
-    List<ClassEntity> classes;
+    @OneToMany(mappedBy = "user")
+    List<Favorite> favorites;
+
+    @OneToMany(mappedBy = "user")
+    List<ClassMember> classMembers;
+
+    @OneToMany(mappedBy = "user")
+    List<AssignmentSubmission> submissions;
+
+    @OneToMany(mappedBy = "user")
+    List<StudyProgress> studyProgresses;
+
+    @OneToMany(mappedBy = "user")
+    List<StudySession> studySessions;
+
+    @OneToMany(mappedBy = "owner")
+    List<Classroom> ownedClasses;
+
+    @OneToMany(mappedBy = "assignedBy")
+    List<Assignment> assignments;
+
+
 }

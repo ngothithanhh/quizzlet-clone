@@ -1,4 +1,4 @@
-package org.api.quizzz.config;
-
-public class SecurityConfig {
-}
+//package org.api.quizzz.config;
+//
+//public class SecurityConfig {
+//}
