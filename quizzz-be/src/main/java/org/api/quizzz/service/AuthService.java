@@ -11,4 +11,7 @@ public interface AuthService {
     Map<String, String> login(String email, String password);
     RefreshToken createRefreshToken(User user);
     String refreshAccessToken(String refreshToken);
+    void sendResetPasswordOtp(String email);
+    void resetPassword(String email, String otpCode, String newPassword);
+    void changePassword(String email, String oldPassword, String newPassword);
 }

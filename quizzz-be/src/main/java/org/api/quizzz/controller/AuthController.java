@@ -2,13 +2,11 @@ package org.api.quizzz.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.api.quizzz.entity.User;
+import org.api.quizzz.security.jwt.JwtUtil;
 import org.api.quizzz.service.AuthService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
@@ -17,6 +15,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class AuthController {
     private final AuthService authService;
+    private final JwtUtil jwtUtil;
 
     @PostMapping("/register/otp")
     public ResponseEntity<String> sendOtp(@RequestParam String email){
@@ -50,6 +49,37 @@ public class AuthController {
     ) {
         String newAccessToken = authService.refreshAccessToken(refreshToken);
         return ResponseEntity.ok(Map.of("accessToken", newAccessToken));
+    }
+
+
+    @PostMapping("/forgot-password/otp")
+    public ResponseEntity<String> sendResetOtp(@RequestParam String email) {
+        authService.sendResetPasswordOtp(email);
+        return ResponseEntity.ok("OTP reset password đã gửi");
+    }
+
+    @PostMapping("/forgot-password/reset")
+    public ResponseEntity<String> resetPassword(
+            @RequestParam String email,
+            @RequestParam String otpCode,
+            @RequestParam String newPassword
+    ) {
+        authService.resetPassword(email, otpCode, newPassword);
+        return ResponseEntity.ok("Đổi mật khẩu thành công");
+    }
+
+    @PostMapping("/change-password")
+    public ResponseEntity<String> changePassword(
+            @RequestParam String oldPassword,
+            @RequestParam String newPassword,
+            @RequestHeader("Authorization") String authHeader
+    ) {
+        String token = authHeader.substring(7);
+        String email = jwtUtil.extractEmail(token);
+
+        authService.changePassword(email, oldPassword, newPassword);
+
+        return ResponseEntity.ok("Đổi mật khẩu thành công");
     }
 
 }

@@ -96,4 +96,32 @@ public class AuthServiceImpl implements AuthService {
 
         return jwtUtil.generateToken(refreshToken.getUser().getEmail());
     }
+    @Override
+    public void sendResetPasswordOtp(String email){
+        User user = userRepository.findByEmail(email).orElseThrow(()-> new RuntimeException("Email không tồn tại"));
+
+        emailOtpService.createAndSendOtp(email,OtpType.FORGOT_PASSWORD);
+    }
+
+    @Override
+    public void resetPassword(String email, String otpCode, String newPassword){
+        emailOtpService.verifyOtp(email,OtpType.FORGOT_PASSWORD,otpCode);
+
+        User user = userRepository.findByEmail(email).orElseThrow(()-> new RuntimeException("User không tồn tại"));
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+    }
+
+    @Override
+    public void changePassword(String email, String oldPassword, String newPassword){
+        User user = userRepository.findByEmail(email).orElseThrow(()-> new RuntimeException("User không tồn tại"));
+
+        if(!passwordEncoder.matches(oldPassword, user.getPassword())){
+            throw new RuntimeException("Mật khẩu cũ không đúng!");
+        }
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+    }
 }
