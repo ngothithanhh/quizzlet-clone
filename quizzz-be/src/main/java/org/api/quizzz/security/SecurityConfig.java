@@ -1,6 +1,7 @@
 package org.api.quizzz.security;
 
 import lombok.RequiredArgsConstructor;
+import org.api.quizzz.oauth2.OAuth2SuccessHandler;
 import org.api.quizzz.security.jwt.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -20,6 +21,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final CorsConfigurationSource corsConfigurationSource;
+    private final OAuth2SuccessHandler oAuth2SuccessHandler;
 
 
     @Bean
@@ -29,10 +31,11 @@ public class SecurityConfig {
                 .cors(Customizer.withDefaults())
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/**").permitAll()
+                        .requestMatchers("/auth/**", "/oauth2/**").permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .anyRequest().authenticated()
                 )
+                .oauth2Login(oauth ->oauth.successHandler(oAuth2SuccessHandler))
                 .addFilterBefore(
                         jwtAuthenticationFilter,
                         UsernamePasswordAuthenticationFilter.class
