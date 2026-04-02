@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class StudySessionMapper {
-    public StudySessionResponse mapToResponse(StudySession s) {
+    public static StudySessionResponse mapToResponse(StudySession s) {
         var studySet = s.getStudySet();
 
         Long studySetId = (studySet != null) ? studySet.getId() : null;
