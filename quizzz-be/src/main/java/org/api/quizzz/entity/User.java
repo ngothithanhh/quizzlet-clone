@@ -41,7 +41,7 @@ public class User extends BaseEntity {
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     List<Folder> folders;
 
-    @OneToMany(mappedBy = "user")
+    @OneToMany(mappedBy = "user",cascade = CascadeType.ALL)
     List<RefreshToken> refreshTokens;
 
     @OneToMany(mappedBy = "user")

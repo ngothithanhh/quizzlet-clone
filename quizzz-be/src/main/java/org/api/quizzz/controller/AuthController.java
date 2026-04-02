@@ -1,13 +1,19 @@
 package org.api.quizzz.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.api.quizzz.dto.request.auth.ChangePasswordRequest;
+import org.api.quizzz.dto.request.auth.LoginRequest;
+import org.api.quizzz.dto.request.auth.RegisterRequest;
+import org.api.quizzz.dto.request.auth.ResetPasswordRequest;
 import org.api.quizzz.entity.User;
+import org.api.quizzz.repository.UserRepository;
 import org.api.quizzz.security.jwt.JwtUtil;
 import org.api.quizzz.service.AuthService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -17,6 +23,8 @@ public class AuthController {
     private final AuthService authService;
     private final JwtUtil jwtUtil;
 
+    private final UserRepository userRepository;
+
     @PostMapping("/register/otp")
     public ResponseEntity<String> sendOtp(@RequestParam String email){
         authService.sendRegisterOtp(email);
@@ -24,22 +32,21 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<User> register(
-            @RequestParam String username,
-            @RequestParam String email,
-            @RequestParam String password,
-            @RequestParam String otpCode
-    ){
-        User user = authService.verifyOtpAndRegister(username,email,password,otpCode);
-        return new ResponseEntity<>(user, HttpStatus.CREATED);
+    public ResponseEntity<User> register(@RequestBody RegisterRequest request){
+        return ResponseEntity.ok(
+                authService.verifyOtpAndRegister(
+                        request.getUsername(),
+                        request.getEmail(),
+                        request.getPassword(),
+                        request.getOtpCode()
+                )
+        );
     }
 
     @PostMapping("/login")
     public ResponseEntity<Map<String, String>> login(
-            @RequestParam String email,
-            @RequestParam String password
-    ) {
-        Map<String, String> tokens = authService.login(email, password);
+            @RequestBody LoginRequest request) {
+        Map<String, String> tokens = authService.login(request.getEmail(), request.getPassword());
         return ResponseEntity.ok(tokens);
     }
 
@@ -59,27 +66,27 @@ public class AuthController {
     }
 
     @PostMapping("/forgot-password/reset")
-    public ResponseEntity<String> resetPassword(
-            @RequestParam String email,
-            @RequestParam String otpCode,
-            @RequestParam String newPassword
-    ) {
-        authService.resetPassword(email, otpCode, newPassword);
+    public ResponseEntity<String> resetPassword(@RequestBody ResetPasswordRequest request) {
+        authService.resetPassword(request.getEmail(), request.getOtpCode(), request.getNewPassword());
         return ResponseEntity.ok("Đổi mật khẩu thành công");
     }
 
     @PostMapping("/change-password")
     public ResponseEntity<String> changePassword(
-            @RequestParam String oldPassword,
-            @RequestParam String newPassword,
+            @RequestBody ChangePasswordRequest request,
             @RequestHeader("Authorization") String authHeader
     ) {
         String token = authHeader.substring(7);
         String email = jwtUtil.extractEmail(token);
 
-        authService.changePassword(email, oldPassword, newPassword);
+        authService.changePassword(email, request.getOldPassword(), request.getNewPassword());
 
         return ResponseEntity.ok("Đổi mật khẩu thành công");
+    }
+
+    @GetMapping("/test-db")
+    public List<User> test() {
+        return userRepository.findAll();
     }
 
 }

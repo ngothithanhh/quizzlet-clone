@@ -28,7 +28,7 @@ public class EmailOtpServiceImpl implements EmailOtpService {
                 .otpCode(otpCode)
                 .type(type)
                 .status(OtpStatus.PENDING)
-                .expiresAt(LocalDateTime.now().plusMinutes(5))
+                .expiresAt(LocalDateTime.now().plusMinutes(2))
                 .build();
 
         emailOtpRepository.save(otp);

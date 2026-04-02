@@ -49,7 +49,7 @@ public class AuthServiceImpl implements AuthService {
                 .password(passwordEncoder.encode(password))
                 .isVerified(true)
                 .build();
-
+        System.out.println("SAVE USER");
         return userRepository.save(user);
     }
 

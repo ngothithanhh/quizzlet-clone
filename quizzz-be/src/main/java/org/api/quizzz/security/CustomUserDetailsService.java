@@ -1,5 +1,6 @@
 package org.api.quizzz.security;
 
+import lombok.RequiredArgsConstructor;
 import org.api.quizzz.entity.User;
 import org.api.quizzz.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,9 +13,10 @@ import org.springframework.stereotype.Service;
 import java.util.Collections;
 
 @Service
+@RequiredArgsConstructor
 public class CustomUserDetailsService implements UserDetailsService {
     @Autowired
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
 
 
     @Override
@@ -23,10 +25,7 @@ public class CustomUserDetailsService implements UserDetailsService {
         User user = userRepository.findByEmail(email).orElseThrow(()-> new UsernameNotFoundException("User not found: " + email));
 
         //tra ve UserDetails cho Spring Security
-        return new org.springframework.security.core.userdetails.User(
-                user.getEmail(),
-                user.getPassword(),
-                Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"))
-        );
+        return UserPrincipal.fromUser(user);
+
     }
 }
