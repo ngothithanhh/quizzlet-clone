@@ -19,7 +19,7 @@ public class UserPrincipal implements UserDetails {
     public UserPrincipal() {
     }
 
-    public UserPrincipal(Long id, String password, String email) {
+    public UserPrincipal(Long id, String email,String password) {
         this.id = id;
         this.password = password;
         this.email = email;

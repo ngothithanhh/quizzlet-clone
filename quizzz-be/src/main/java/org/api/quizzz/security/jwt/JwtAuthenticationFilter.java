@@ -41,8 +41,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             token = authHeader.substring(7);
             email = jwtUtil.extractEmail(token);
         }
+//        System.out.println(">>> HEADER: " + request.getHeader("Authorization"));
+//        System.out.println(">>> JWT filter chạy");
 
-        // Nếu có username và chưa authenticate
+
+
         if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
 
             UserDetails userDetails = userDetailsService.loadUserByUsername(email);
@@ -64,7 +67,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 // 4. Set authentication vào SecurityContext
                 SecurityContextHolder.getContext().setAuthentication(authToken);
             }
+//            System.out.println(">>> EMAIL FROM TOKEN: " + email);
+//            System.out.println(">>> EMAIL FROM DB: " + userDetails.getUsername());
+//            System.out.println(">>> VALID: " + jwtUtil.validateToken(token, userDetails.getUsername()));
         }
+
+
 
         // Tiếp tục filter chain
         try {

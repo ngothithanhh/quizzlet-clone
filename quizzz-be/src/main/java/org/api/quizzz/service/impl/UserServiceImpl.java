@@ -18,11 +18,13 @@ public class UserServiceImpl implements UserService {
     private final UserMapper userMapper;
     @Override
     public UserProfileResponse getMyProfile(){
+//        System.out.println(SecurityUtils.getCurrentUserId());
+//        System.out.println("Service");
         Long id = SecurityUtils.getCurrentUserId();
 
         User user = userRepository.findById(id).orElseThrow(()->new RuntimeException("User không tồn tại"));
 
-        return userMapper.mapToProfileResponse(user);
+        return UserMapper.mapToProfileResponse(user);
     }
 
     @Override

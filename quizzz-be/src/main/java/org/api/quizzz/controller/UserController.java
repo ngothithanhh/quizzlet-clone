@@ -11,25 +11,22 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/user")
+@RequestMapping("/users")
 @RequiredArgsConstructor
 public class UserController {
     private final UserService userService;
     private final StudySessionService studySessionService;
 
-    @PreAuthorize("isAuthenticated()")
     @GetMapping("/me")
     public UserProfileResponse getMyProfile() {
         return userService.getMyProfile();
     }
 
-    @PreAuthorize("isAuthenticated()")
-    @PutMapping("/update-profile")
+    @PutMapping("/me")
     public UserProfileResponse updateMyProfile(@RequestBody UserProfileUpdateRequest request){
         return userService.updateMyProfile(request);
     }
 
-    @PreAuthorize("isAuthenticated()")
     @GetMapping("/me/sessions")
     public Page<StudySessionResponse> getMySessions(
             @RequestParam(defaultValue = "0") int page,
