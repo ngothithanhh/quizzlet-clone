@@ -6,6 +6,8 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 import org.api.quizzz.enums.ClassRole;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "class_members")
 @Getter
@@ -18,6 +20,12 @@ public class ClassMember {
 
     @EmbeddedId
     ClassMemberId id;
+
+    @Column(name = "joined_at")
+    LocalDateTime joinedAt;
+
+    @Column(name = "is_creator")
+    boolean isCreator = false;
 
     @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
@@ -39,6 +47,9 @@ public class ClassMember {
     public void prePersistMember() {
         if (this.role == null) {
             this.role = ClassRole.STUDENT;
+        }
+        if (this.joinedAt == null) {
+            this.joinedAt = LocalDateTime.now();
         }
     }
 }
