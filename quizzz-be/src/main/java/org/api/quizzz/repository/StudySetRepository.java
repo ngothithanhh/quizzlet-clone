@@ -11,6 +11,9 @@ public interface StudySetRepository extends JpaRepository<StudySet, Long> {
 
     List<StudySet> findByUserId(Long userId);
 
+    List<StudySet> findByUserIdAndTitleContainingIgnoreCase(Long userId, String keyword);
+
     List<StudySet> findByIsPublicTrue();
 
+    List<StudySet> findByTitleContainingIgnoreCaseAndIsPublicTrue(String keyword);
 }

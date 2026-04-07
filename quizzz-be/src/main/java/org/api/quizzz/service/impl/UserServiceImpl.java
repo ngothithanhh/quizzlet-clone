@@ -45,4 +45,11 @@ public class UserServiceImpl implements UserService {
         return userMapper.mapToProfileResponse(user);
     }
 
+    @Override
+    public void deleteUser(Long id) {
+        if (!userRepository.existsById(id)) {
+            throw new RuntimeException("User không tồn tại với ID: " + id);
+        }
+        userRepository.deleteById(id);
+    }
 }

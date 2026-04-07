@@ -2,22 +2,25 @@ package org.api.quizzz.service.impl;
 
 import lombok.RequiredArgsConstructor;
 import org.api.quizzz.dto.request.classroom.*;
-import org.api.quizzz.dto.response.AssignmentResultResponse;
+import org.api.quizzz.dto.response.*;
 import org.api.quizzz.entity.*;
 import org.api.quizzz.enums.ClassRole;
 import org.api.quizzz.repository.*;
 import org.api.quizzz.service.ClassService;
 import org.api.quizzz.utils.SecurityUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class ClassServiceImpl implements ClassService {
+
     private final ClassRepository classRepo;
     private final ClassMemberRepository memberRepo;
     private final UserRepository userRepo;
@@ -25,24 +28,84 @@ public class ClassServiceImpl implements ClassService {
     private final StudySetRepository studySetRepo;
     private final AssignmentSubmissionRepository submissionRepo;
 
+    // ========== Mapper helpers ==========
+
+    private ClassroomResponse toClassroomResponse(Classroom c) {
+        return ClassroomResponse.builder()
+                .id(c.getId())
+                .name(c.getName())
+                .description(c.getDescription())
+                .inviteCode(c.getInviteCode())
+                .ownerId(c.getOwner().getId())
+                .ownerUsername(c.getOwner().getUsername())
+                .createdAt(c.getCreatedAt())
+                .build();
+    }
+
+    private ClassMemberResponse toMemberResponse(ClassMember cm) {
+        User u = cm.getUser();
+        return ClassMemberResponse.builder()
+                .userId(u.getId())
+                .username(u.getUsername())
+                .email(u.getEmail())
+                .avatarUrl(u.getAvatarUrl())
+                .role(cm.getRole())
+                .isCreator(cm.isCreator())
+                .build();
+    }
+
+    private AssignmentResponse toAssignmentResponse(Assignment a) {
+        return AssignmentResponse.builder()
+                .id(a.getId())
+                .title(a.getTitle())
+                .description(a.getDescription())
+                .studySetId(a.getStudySet() != null ? a.getStudySet().getId() : null)
+                .studySetTitle(a.getStudySet() != null ? a.getStudySet().getTitle() : null)
+                .classId(a.getClassroom() != null ? a.getClassroom().getId() : null)
+                .className(a.getClassroom() != null ? a.getClassroom().getName() : null)
+                .assignedById(a.getAssignedBy() != null ? a.getAssignedBy().getId() : null)
+                .assignedByUsername(a.getAssignedBy() != null ? a.getAssignedBy().getUsername() : null)
+                .dueDate(a.getDueDate())
+                .createdAt(a.getCreatedAt())
+                .build();
+    }
+
+    private SubmissionResponse toSubmissionResponse(AssignmentSubmission s) {
+        return SubmissionResponse.builder()
+                .id(s.getId())
+                .assignmentId(s.getAssignment() != null ? s.getAssignment().getId() : null)
+                .assignmentTitle(s.getAssignment() != null ? s.getAssignment().getTitle() : null)
+                .userId(s.getUser() != null ? s.getUser().getId() : null)
+                .username(s.getUser() != null ? s.getUser().getUsername() : null)
+                .status(s.getStatus())
+                .score(s.getScore())
+                .completedAt(s.getCompletedAt())
+                .build();
+    }
+
+    // ========== ClassService methods ==========
 
     @Override
+    @Transactional
     public Map<String, Object> createClass(ClassRequest req) {
         Long userId = SecurityUtils.getCurrentUserId();
+
+        User owner = userRepo.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
         Classroom c = Classroom.builder()
                 .name(req.getName())
                 .description(req.getDescription())
                 .inviteCode(generateCode())
-                .owner(userRepo.findById(userId).orElseThrow())
+                .owner(owner)
                 .build();
         classRepo.save(c);
 
         ClassMember cm = new ClassMember();
         cm.setId(new ClassMemberId(c.getId(), userId));
         cm.setClassroom(c);
-        cm.setUser(c.getOwner());
-        cm.setRole(ClassRole.STUDENT);
+        cm.setUser(owner);
+        cm.setRole(ClassRole.TEACHER); // Creator mặc định là TEACHER
         cm.setCreator(true);
         memberRepo.save(cm);
 
@@ -53,37 +116,44 @@ public class ClassServiceImpl implements ClassService {
     }
 
     @Override
-    public Classroom getClassDetail(Long classId) {
-        return classRepo.findById(classId)
-                .orElseThrow(() -> new RuntimeException("Class not found"));
-    }
-
-    @Override
-    public List<ClassMember> getMyClasses() {
-        Long userId = SecurityUtils.getCurrentUserId();
-        return memberRepo.findByUserId(userId);
-    }
-
-    @Override
-    public List<ClassMember> getClassMembers(Long classId) {
+    public ClassroomResponse getClassDetail(Long classId) {
         Classroom c = classRepo.findById(classId)
                 .orElseThrow(() -> new RuntimeException("Class not found"));
-
-        return memberRepo.findByClassroomIdAndRole(classId, null);
+        return toClassroomResponse(c);
     }
 
     @Override
-    public Classroom updateClass(Long classId, ClassRequest req) {
+    public List<ClassMemberResponse> getMyClasses() {
+        Long userId = SecurityUtils.getCurrentUserId();
+        return memberRepo.findByUserId(userId).stream()
+                .map(this::toMemberResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<ClassMemberResponse> getClassMembers(Long classId) {
+        classRepo.findById(classId)
+                .orElseThrow(() -> new RuntimeException("Class not found"));
+        return memberRepo.findByClassroomIdAndRole(classId, null).stream()
+                .map(this::toMemberResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public ClassroomResponse updateClass(Long classId, ClassRequest req) {
         Long userId = SecurityUtils.getCurrentUserId();
         if (!canManageClass(userId, classId)) throw new RuntimeException("Forbidden");
 
-        Classroom c = classRepo.findById(classId).orElseThrow();
+        Classroom c = classRepo.findById(classId)
+                .orElseThrow(() -> new RuntimeException("Class not found"));
         c.setName(req.getName());
         c.setDescription(req.getDescription());
-        return classRepo.save(c);
+        return toClassroomResponse(classRepo.save(c));
     }
 
     @Override
+    @Transactional
     public void deleteClass(Long classId) {
         Long userId = SecurityUtils.getCurrentUserId();
         if (!canManageClass(userId, classId)) throw new RuntimeException("Forbidden");
@@ -91,13 +161,14 @@ public class ClassServiceImpl implements ClassService {
     }
 
     @Override
+    @Transactional
     public String joinByCode(JoinRequest req) {
         Long userId = SecurityUtils.getCurrentUserId();
         Classroom c = classRepo.findByInviteCode(req.getInviteCode())
-                .orElseThrow(() -> new RuntimeException("Invalid code"));
+                .orElseThrow(() -> new RuntimeException("Invalid invite code"));
 
         ClassMemberId id = new ClassMemberId(c.getId(), userId);
-        if (memberRepo.existsById(id)) throw new RuntimeException("Already joined");
+        if (memberRepo.existsById(id)) throw new RuntimeException("Already joined this class");
 
         ClassMember cm = new ClassMember();
         cm.setId(id);
@@ -107,27 +178,29 @@ public class ClassServiceImpl implements ClassService {
         cm.setCreator(false);
         memberRepo.save(cm);
 
-        return "Joined";
+        return "Tham gia lớp thành công";
     }
 
     @Override
+    @Transactional
     public Map<String, String> regenerateCode(Long classId) {
         Long userId = SecurityUtils.getCurrentUserId();
         if (!canManageClass(userId, classId)) throw new RuntimeException("Forbidden");
 
-        Classroom c = classRepo.findById(classId).orElseThrow();
+        Classroom c = classRepo.findById(classId)
+                .orElseThrow(() -> new RuntimeException("Class not found"));
         c.setInviteCode(generateCode());
         return Map.of("inviteCode", classRepo.save(c).getInviteCode());
     }
 
-
     @Override
+    @Transactional
     public String addMember(Long classId, AddMemberRequest req) {
         Long userId = SecurityUtils.getCurrentUserId();
         if (!canManageClass(userId, classId)) throw new RuntimeException("Forbidden");
 
         ClassMemberId id = new ClassMemberId(classId, req.getUserId());
-        if (memberRepo.existsById(id)) throw new RuntimeException("Already exists");
+        if (memberRepo.existsById(id)) throw new RuntimeException("User already in class");
 
         ClassMember cm = new ClassMember();
         cm.setId(id);
@@ -137,10 +210,11 @@ public class ClassServiceImpl implements ClassService {
         cm.setCreator(false);
         memberRepo.save(cm);
 
-        return "Added";
+        return "Thêm thành viên thành công";
     }
 
     @Override
+    @Transactional
     public void removeMember(Long classId, Long targetUserId) {
         Long userId = SecurityUtils.getCurrentUserId();
         if (!canManageClass(userId, classId) && !userId.equals(targetUserId))
@@ -150,35 +224,38 @@ public class ClassServiceImpl implements ClassService {
     }
 
     @Override
+    @Transactional
     public String leaveClass(Long classId) {
         Long userId = SecurityUtils.getCurrentUserId();
 
         ClassMember member = memberRepo.findByClassroomIdAndUserId(classId, userId)
-                .orElseThrow(() -> new RuntimeException("Not a member"));
+                .orElseThrow(() -> new RuntimeException("Not a member of this class"));
 
         if (member.isCreator()) {
-            throw new RuntimeException("Creator cannot leave class");
+            throw new RuntimeException("Creator cannot leave class. Please delete the class instead.");
         }
 
         memberRepo.delete(member);
-        return "Left class";
+        return "Rời lớp thành công";
     }
 
     @Override
-    public ClassMember updateMemberRole(Long classId, Long targetUserId, ClassRole newRole) {
+    @Transactional
+    public ClassMemberResponse updateMemberRole(Long classId, Long targetUserId, ClassRole newRole) {
         Long userId = SecurityUtils.getCurrentUserId();
         ClassMember creator = memberRepo.findByClassroomIdAndUserIdAndIsCreatorTrue(classId, userId);
-        if (creator == null) throw new RuntimeException("Forbidden");
+        if (creator == null) throw new RuntimeException("Forbidden: Only class creator can update roles");
 
         ClassMember target = memberRepo.findByClassroomIdAndUserId(classId, targetUserId)
-                .orElseThrow(() -> new RuntimeException("Member not found"));
+                .orElseThrow(() -> new RuntimeException("Member not found in this class"));
 
         target.setRole(newRole);
-        return memberRepo.save(target);
+        return toMemberResponse(memberRepo.save(target));
     }
 
     @Override
-    public Assignment createAssignment(Long classId, AssignmentRequest req) {
+    @Transactional
+    public AssignmentResponse createAssignment(Long classId, AssignmentRequest req) {
         Long userId = SecurityUtils.getCurrentUserId();
 
         ClassMember member = memberRepo.findByClassroomIdAndUserId(classId, userId)
@@ -202,20 +279,22 @@ public class ClassServiceImpl implements ClassService {
                 .dueDate(req.getDueDate())
                 .build();
 
-        return assignmentRepo.save(assignment);
+        return toAssignmentResponse(assignmentRepo.save(assignment));
     }
 
     @Override
-    public List<Assignment> getAssignmentsByClass(Long classId) {
+    public List<AssignmentResponse> getAssignmentsByClass(Long classId) {
         Long userId = SecurityUtils.getCurrentUserId();
-
         memberRepo.findByClassroomIdAndUserId(classId, userId)
-                .orElseThrow(() -> new RuntimeException("Not a member"));
+                .orElseThrow(() -> new RuntimeException("Not a member of this class"));
 
-        return assignmentRepo.findByClassroomId(classId);
+        return assignmentRepo.findByClassroomId(classId).stream()
+                .map(this::toAssignmentResponse)
+                .collect(Collectors.toList());
     }
 
     @Override
+    @Transactional
     public String submitAssignment(Long assignmentId, SubmitAssignmentRequest req) {
         Long userId = SecurityUtils.getCurrentUserId();
 
@@ -224,7 +303,7 @@ public class ClassServiceImpl implements ClassService {
 
         memberRepo.findByClassroomIdAndUserId(
                 assignment.getClassroom().getId(), userId
-        ).orElseThrow(() -> new RuntimeException("Not a member"));
+        ).orElseThrow(() -> new RuntimeException("Not a member of this class"));
 
         AssignmentSubmission submission = submissionRepo
                 .findByAssignmentIdAndUserId(assignmentId, userId)
@@ -241,27 +320,7 @@ public class ClassServiceImpl implements ClassService {
         submission.setCompletedAt(LocalDateTime.now());
 
         submissionRepo.save(submission);
-
-        return "Submitted";
-    }
-
-    @Override
-    public List<AssignmentSubmission> getSubmissions(Long assignmentId) {
-        Long userId = SecurityUtils.getCurrentUserId();
-
-        Assignment assignment = assignmentRepo.findById(assignmentId)
-                .orElseThrow(() -> new RuntimeException("Assignment not found"));
-
-        ClassMember member = memberRepo.findByClassroomIdAndUserId(
-                assignment.getClassroom().getId(), userId
-        ).orElseThrow(() -> new RuntimeException("Not a member"));
-
-        // 🔥 chỉ teacher hoặc creator mới xem được
-        if (member.getRole() != ClassRole.TEACHER && !member.isCreator()) {
-            throw new RuntimeException("Forbidden");
-        }
-
-        return submissionRepo.findByAssignmentId(assignmentId);
+        return "Nộp bài thành công";
     }
 
     @Override
@@ -271,10 +330,9 @@ public class ClassServiceImpl implements ClassService {
         Assignment assignment = assignmentRepo.findById(assignmentId)
                 .orElseThrow(() -> new RuntimeException("Assignment not found"));
 
-        // check user có trong class không
         memberRepo.findByClassroomIdAndUserId(
                 assignment.getClassroom().getId(), userId
-        ).orElseThrow(() -> new RuntimeException("Not a member of class"));
+        ).orElseThrow(() -> new RuntimeException("Not a member of this class"));
 
         AssignmentSubmission submission = submissionRepo
                 .findByAssignmentIdAndUserId(assignmentId, userId)
@@ -289,6 +347,28 @@ public class ClassServiceImpl implements ClassService {
                 .build();
     }
 
+    @Override
+    public List<SubmissionResponse> getSubmissions(Long assignmentId) {
+        Long userId = SecurityUtils.getCurrentUserId();
+
+        Assignment assignment = assignmentRepo.findById(assignmentId)
+                .orElseThrow(() -> new RuntimeException("Assignment not found"));
+
+        ClassMember member = memberRepo.findByClassroomIdAndUserId(
+                assignment.getClassroom().getId(), userId
+        ).orElseThrow(() -> new RuntimeException("Not a member of this class"));
+
+        if (member.getRole() != ClassRole.TEACHER && !member.isCreator()) {
+            throw new RuntimeException("Forbidden: Only teacher or creator can view submissions");
+        }
+
+        return submissionRepo.findByAssignmentId(assignmentId).stream()
+                .map(this::toSubmissionResponse)
+                .collect(Collectors.toList());
+    }
+
+    // ========== Helpers ==========
+
     private boolean canManageClass(Long userId, Long classId) {
         return memberRepo.existsByClassroomIdAndUserIdAndIsCreatorTrue(classId, userId);
     }
@@ -296,7 +376,4 @@ public class ClassServiceImpl implements ClassService {
     private String generateCode() {
         return UUID.randomUUID().toString().substring(0, 6).toUpperCase();
     }
-
-
-
 }

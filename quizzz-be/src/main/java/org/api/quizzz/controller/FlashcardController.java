@@ -1,0 +1,73 @@
+package org.api.quizzz.controller;
+
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.api.quizzz.dto.request.FlashcardRequest;
+import org.api.quizzz.dto.response.FlashcardResponse;
+import org.api.quizzz.service.FlashcardService;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
+import java.util.Map;
+
+@RestController
+@RequiredArgsConstructor
+public class FlashcardController {
+
+    private final FlashcardService flashcardService;
+
+    /**
+     * 3.1 Tạo flashcard
+     * POST /api/flashcards
+     */
+    @PostMapping("/api/flashcards")
+    public ResponseEntity<FlashcardResponse> createFlashcard(@Valid @RequestBody FlashcardRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(flashcardService.createFlashcard(request));
+    }
+
+    /**
+     * 3.2 Cập nhật flashcard
+     * PUT /api/flashcards/{id}
+     */
+    @PutMapping("/api/flashcards/{id}")
+    public ResponseEntity<FlashcardResponse> updateFlashcard(
+            @PathVariable Long id,
+            @Valid @RequestBody FlashcardRequest request) {
+        return ResponseEntity.ok(flashcardService.updateFlashcard(id, request));
+    }
+
+    /**
+     * 3.3 Xóa flashcard
+     * DELETE /api/flashcards/{id}
+     */
+    @DeleteMapping("/api/flashcards/{id}")
+    public ResponseEntity<Void> deleteFlashcard(@PathVariable Long id) {
+        flashcardService.deleteFlashcard(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * 3.4 Lấy flashcard theo study set
+     * GET /api/studysets/{id}/flashcards
+     */
+    @GetMapping("/api/studysets/{studySetId}/flashcards")
+    public ResponseEntity<List<FlashcardResponse>> getFlashcardsByStudySet(@PathVariable Long studySetId) {
+        return ResponseEntity.ok(flashcardService.getFlashcardsByStudySet(studySetId));
+    }
+
+    /**
+     * 3.5 Import flashcard từ file Excel (.xlsx)
+     * POST /api/studysets/{id}/flashcards/import
+     * File Excel cần có 2 cột: Cột A = Term, Cột B = Definition (dòng đầu là header)
+     */
+    @PostMapping("/api/studysets/{studySetId}/flashcards/import")
+    public ResponseEntity<Map<String, String>> importFlashcards(
+            @PathVariable Long studySetId,
+            @RequestParam("file") MultipartFile file) {
+        flashcardService.importFlashcards(studySetId, file);
+        return ResponseEntity.ok(Map.of("message", "Import flashcard thành công"));
+    }
+}
