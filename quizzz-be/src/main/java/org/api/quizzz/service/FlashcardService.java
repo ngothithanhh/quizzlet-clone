@@ -19,4 +19,6 @@ public interface FlashcardService {
     void importFlashcards(Long studySetId, MultipartFile file);
 
     void cloneFlashcards(CloneFlashcardsRequest request);
+
+    byte[] exportFlashcardsToExcel(Long studySetId);
 }

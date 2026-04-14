@@ -72,16 +72,21 @@ public class ExternalApiServiceImpl implements ExternalApiService {
             URI uri = UriComponentsBuilder.fromHttpUrl(url)
                     .queryParam("action", "query")
                     .queryParam("prop", "extracts")
-                    .queryParam("exsentences", 3) // Lấy 3 câu tóm tắt
+                    .queryParam("exsentences", 3)
                     .queryParam("exlimit", 1)
                     .queryParam("titles", keyword)
                     .queryParam("explaintext", 1)
                     .queryParam("format", "json")
                     .build().encode().toUri();
 
-            ResponseEntity<String> response = restTemplate.getForEntity(uri, String.class);
+            // Wikipedia yêu cầu User-Agent để chống Bot scraping
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("User-Agent", "QuizzzApp/1.0 (educational project; contact@quizzz.com)");
+            HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+            ResponseEntity<String> response = restTemplate.exchange(uri, HttpMethod.GET, entity, String.class);
             JsonNode root = objectMapper.readTree(response.getBody());
-            
+
             JsonNode pages = root.path("query").path("pages");
             if (pages.fields().hasNext()) {
                 JsonNode firstPage = pages.fields().next().getValue();

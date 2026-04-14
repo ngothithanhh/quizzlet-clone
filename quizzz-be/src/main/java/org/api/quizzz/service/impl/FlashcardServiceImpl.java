@@ -203,4 +203,46 @@ public class FlashcardServiceImpl implements FlashcardService {
 
         flashcardRepository.saveAll(clonedFlashcards);
     }
+
+    @Override
+    public byte[] exportFlashcardsToExcel(Long studySetId) {
+        if (!studySetRepository.existsById(studySetId)) {
+            throw new RuntimeException("StudySet không tồn tại với ID: " + studySetId);
+        }
+
+        List<Flashcard> flashcards = flashcardRepository.findByStudySetIdOrderByPositionAsc(studySetId);
+
+        try (Workbook workbook = new XSSFWorkbook()) {
+            Sheet sheet = workbook.createSheet("Flashcards");
+
+            // Header row
+            Row headerRow = sheet.createRow(0);
+            headerRow.createCell(0).setCellValue("Term");
+            headerRow.createCell(1).setCellValue("Definition");
+            headerRow.createCell(2).setCellValue("Image URL");
+            headerRow.createCell(3).setCellValue("Audio URL");
+
+            // Data rows
+            int rowNum = 1;
+            for (Flashcard fc : flashcards) {
+                Row row = sheet.createRow(rowNum++);
+                row.createCell(0).setCellValue(fc.getTerm() != null ? fc.getTerm() : "");
+                row.createCell(1).setCellValue(fc.getDefinition() != null ? fc.getDefinition() : "");
+                row.createCell(2).setCellValue(fc.getImageUrl() != null ? fc.getImageUrl() : "");
+                row.createCell(3).setCellValue(fc.getAudioUrl() != null ? fc.getAudioUrl() : "");
+            }
+
+            // Auto-size columns
+            for (int i = 0; i < 4; i++) {
+                sheet.autoSizeColumn(i);
+            }
+
+            java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
+            workbook.write(bos);
+            return bos.toByteArray();
+
+        } catch (Exception e) {
+            throw new RuntimeException("Lỗi khi xuất file Excel: " + e.getMessage());
+        }
+    }
 }

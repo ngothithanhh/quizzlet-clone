@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.api.quizzz.dto.request.FlashcardRequest;
 import org.api.quizzz.dto.response.FlashcardResponse;
 import org.api.quizzz.service.FlashcardService;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -79,5 +80,21 @@ public class FlashcardController {
     public ResponseEntity<Map<String, String>> cloneFlashcards(@Valid @RequestBody org.api.quizzz.dto.request.CloneFlashcardsRequest request) {
         flashcardService.cloneFlashcards(request);
         return ResponseEntity.ok(Map.of("message", "Sao chép flashcards thành công"));
+    }
+
+    /**
+     * 3.7 Export flashcards ra file Excel
+     * GET /api/studysets/{studySetId}/flashcards/export
+     */
+    @GetMapping("/api/studysets/{studySetId}/flashcards/export")
+    public ResponseEntity<byte[]> exportFlashcards(@PathVariable Long studySetId) {
+        byte[] excelBytes = flashcardService.exportFlashcardsToExcel(studySetId);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(org.springframework.http.MediaType.parseMediaType(
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+        headers.setContentDispositionFormData("attachment", "flashcards_" + studySetId + ".xlsx");
+
+        return ResponseEntity.ok().headers(headers).body(excelBytes);
     }
 }
