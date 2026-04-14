@@ -21,4 +21,6 @@ public interface FlashcardService {
     void cloneFlashcards(CloneFlashcardsRequest request);
 
     byte[] exportFlashcardsToExcel(Long studySetId);
+
+    byte[] downloadTemplate();
 }

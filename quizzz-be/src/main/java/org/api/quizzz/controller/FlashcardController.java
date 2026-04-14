@@ -97,4 +97,20 @@ public class FlashcardController {
 
         return ResponseEntity.ok().headers(headers).body(excelBytes);
     }
+
+    /**
+     * 3.8 Tải file Excel mẫu để import flashcards
+     * GET /api/flashcards/import/template
+     */
+    @GetMapping("/api/flashcards/import/template")
+    public ResponseEntity<byte[]> downloadTemplate() {
+        byte[] excelBytes = flashcardService.downloadTemplate();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(org.springframework.http.MediaType.parseMediaType(
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+        headers.setContentDispositionFormData("attachment", "flashcards_template.xlsx");
+
+        return ResponseEntity.ok().headers(headers).body(excelBytes);
+    }
 }

@@ -245,4 +245,32 @@ public class FlashcardServiceImpl implements FlashcardService {
             throw new RuntimeException("Lỗi khi xuất file Excel: " + e.getMessage());
         }
     }
+
+    @Override
+    public byte[] downloadTemplate() {
+        try (Workbook workbook = new XSSFWorkbook()) {
+            Sheet sheet = workbook.createSheet("Template");
+
+            // Header row
+            Row headerRow = sheet.createRow(0);
+            headerRow.createCell(0).setCellValue("Term");
+            headerRow.createCell(1).setCellValue("Definition");
+
+            // Example data row
+            Row exampleRow = sheet.createRow(1);
+            exampleRow.createCell(0).setCellValue("Hello");
+            exampleRow.createCell(1).setCellValue("Xin chào");
+
+            // Auto-size columns
+            sheet.autoSizeColumn(0);
+            sheet.autoSizeColumn(1);
+
+            java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
+            workbook.write(bos);
+            return bos.toByteArray();
+
+        } catch (Exception e) {
+            throw new RuntimeException("Lỗi khi tạo file Excel mẫu: " + e.getMessage());
+        }
+    }
 }
