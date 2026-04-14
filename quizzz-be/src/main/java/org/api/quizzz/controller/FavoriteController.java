@@ -25,7 +25,7 @@ public class FavoriteController {
     @PostMapping("/{studySetId}")
     public ResponseEntity<Void> addFavorite(@PathVariable Long studySetId) {
         Long userId = SecurityUtils.getCurrentUserId();
-        favoriteService.addFavorite(userId, studySetId);
+        favoriteService.addFavorite(studySetId);
         return ResponseEntity.ok().build();
     }
 
@@ -36,7 +36,7 @@ public class FavoriteController {
     @DeleteMapping("/{studySetId}")
     public ResponseEntity<Void> removeFavorite(@PathVariable Long studySetId) {
         Long userId = SecurityUtils.getCurrentUserId();
-        favoriteService.removeFavorite(userId, studySetId);
+        favoriteService.removeFavorite(studySetId);
         return ResponseEntity.noContent().build();
     }
 
@@ -47,6 +47,6 @@ public class FavoriteController {
     @GetMapping
     public ResponseEntity<List<StudySetResponse>> getFavorites() {
         Long userId = SecurityUtils.getCurrentUserId();
-        return ResponseEntity.ok(favoriteService.getFavorites(userId));
+        return ResponseEntity.ok(favoriteService.getFavorites());
     }
 }
