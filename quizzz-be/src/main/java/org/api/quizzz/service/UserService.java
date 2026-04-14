@@ -6,5 +6,5 @@ import org.api.quizzz.dto.response.UserProfileResponse;
 public interface UserService {
     UserProfileResponse getMyProfile();
     UserProfileResponse updateMyProfile(UserProfileUpdateRequest request);
-
+    void deleteUser(Long id);
 }

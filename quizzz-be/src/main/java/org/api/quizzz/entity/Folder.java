@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
@@ -23,13 +24,20 @@ public class Folder extends BaseEntity {
     @JoinColumn(name = "user_id", nullable = false)
     User user;
 
+    @Column(name = "updated_at")
+    LocalDateTime updatedAt;
+
     @PrePersist
     public void prePersistFolder() {
         super.prePersist();
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    public void preUpdateFolder() {
+        this.updatedAt = LocalDateTime.now();
     }
 
     @OneToMany(mappedBy = "folder", cascade = CascadeType.ALL, orphanRemoval = true)
     List<FolderStudySet> folderStudySets;
-
-
 }

@@ -1,11 +1,7 @@
 package org.api.quizzz.service;
 
 import org.api.quizzz.dto.request.classroom.*;
-import org.api.quizzz.dto.response.AssignmentResultResponse;
-import org.api.quizzz.entity.Assignment;
-import org.api.quizzz.entity.AssignmentSubmission;
-import org.api.quizzz.entity.ClassMember;
-import org.api.quizzz.entity.Classroom;
+import org.api.quizzz.dto.response.*;
 import org.api.quizzz.enums.ClassRole;
 
 import java.util.List;
@@ -15,14 +11,13 @@ public interface ClassService {
 
     Map<String, Object> createClass(ClassRequest req);
 
-    Classroom getClassDetail(Long classId);
+    ClassroomResponse getClassDetail(Long classId);
 
-    List<ClassMember> getMyClasses();
+    List<ClassMemberResponse> getMyClasses();
 
-    List<ClassMember> getClassMembers(Long classId);
+    List<ClassMemberResponse> getClassMembers(Long classId);
 
-
-    Classroom updateClass(Long classId, ClassRequest req);
+    ClassroomResponse updateClass(Long classId, ClassRequest req);
 
     void deleteClass(Long classId);
 
@@ -36,16 +31,15 @@ public interface ClassService {
 
     String leaveClass(Long classId);
 
-    ClassMember updateMemberRole(Long classId, Long targetUserId, ClassRole newRole);
+    ClassMemberResponse updateMemberRole(Long classId, Long targetUserId, ClassRole newRole);
 
-    Assignment createAssignment(Long classId, AssignmentRequest req);
+    AssignmentResponse createAssignment(Long classId, AssignmentRequest req);
 
-    List<Assignment> getAssignmentsByClass(Long classId);
+    List<AssignmentResponse> getAssignmentsByClass(Long classId);
 
     String submitAssignment(Long assignmentId, SubmitAssignmentRequest req);
 
     AssignmentResultResponse getMyResult(Long assignmentId);
 
-    List<AssignmentSubmission> getSubmissions(Long assignmentId);
-
+    List<SubmissionResponse> getSubmissions(Long assignmentId);
 }
