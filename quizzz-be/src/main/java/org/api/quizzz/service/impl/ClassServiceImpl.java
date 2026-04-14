@@ -5,8 +5,11 @@ import org.api.quizzz.dto.request.classroom.*;
 import org.api.quizzz.dto.response.*;
 import org.api.quizzz.entity.*;
 import org.api.quizzz.enums.ClassRole;
+import org.api.quizzz.mapper.ClassMapper;
 import org.api.quizzz.repository.*;
 import org.api.quizzz.service.ClassService;
+import org.api.quizzz.service.NotificationService;
+import org.api.quizzz.enums.NotificationType;
 import org.api.quizzz.utils.SecurityUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,61 +30,9 @@ public class ClassServiceImpl implements ClassService {
     private final AssignmentRepository assignmentRepo;
     private final StudySetRepository studySetRepo;
     private final AssignmentSubmissionRepository submissionRepo;
+    private final NotificationService notificationService;
 
-    // ========== Mapper helpers ==========
 
-    private ClassroomResponse toClassroomResponse(Classroom c) {
-        return ClassroomResponse.builder()
-                .id(c.getId())
-                .name(c.getName())
-                .description(c.getDescription())
-                .inviteCode(c.getInviteCode())
-                .ownerId(c.getOwner().getId())
-                .ownerUsername(c.getOwner().getUsername())
-                .createdAt(c.getCreatedAt())
-                .build();
-    }
-
-    private ClassMemberResponse toMemberResponse(ClassMember cm) {
-        User u = cm.getUser();
-        return ClassMemberResponse.builder()
-                .userId(u.getId())
-                .username(u.getUsername())
-                .email(u.getEmail())
-                .avatarUrl(u.getAvatarUrl())
-                .role(cm.getRole())
-                .isCreator(cm.isCreator())
-                .build();
-    }
-
-    private AssignmentResponse toAssignmentResponse(Assignment a) {
-        return AssignmentResponse.builder()
-                .id(a.getId())
-                .title(a.getTitle())
-                .description(a.getDescription())
-                .studySetId(a.getStudySet() != null ? a.getStudySet().getId() : null)
-                .studySetTitle(a.getStudySet() != null ? a.getStudySet().getTitle() : null)
-                .classId(a.getClassroom() != null ? a.getClassroom().getId() : null)
-                .className(a.getClassroom() != null ? a.getClassroom().getName() : null)
-                .assignedById(a.getAssignedBy() != null ? a.getAssignedBy().getId() : null)
-                .assignedByUsername(a.getAssignedBy() != null ? a.getAssignedBy().getUsername() : null)
-                .dueDate(a.getDueDate())
-                .createdAt(a.getCreatedAt())
-                .build();
-    }
-
-    private SubmissionResponse toSubmissionResponse(AssignmentSubmission s) {
-        return SubmissionResponse.builder()
-                .id(s.getId())
-                .assignmentId(s.getAssignment() != null ? s.getAssignment().getId() : null)
-                .assignmentTitle(s.getAssignment() != null ? s.getAssignment().getTitle() : null)
-                .userId(s.getUser() != null ? s.getUser().getId() : null)
-                .username(s.getUser() != null ? s.getUser().getUsername() : null)
-                .status(s.getStatus())
-                .score(s.getScore())
-                .completedAt(s.getCompletedAt())
-                .build();
-    }
 
     // ========== ClassService methods ==========
 
@@ -119,14 +70,14 @@ public class ClassServiceImpl implements ClassService {
     public ClassroomResponse getClassDetail(Long classId) {
         Classroom c = classRepo.findById(classId)
                 .orElseThrow(() -> new RuntimeException("Class not found"));
-        return toClassroomResponse(c);
+        return ClassMapper.toClassroomResponse(c);
     }
 
     @Override
     public List<ClassMemberResponse> getMyClasses() {
         Long userId = SecurityUtils.getCurrentUserId();
         return memberRepo.findByUserId(userId).stream()
-                .map(this::toMemberResponse)
+                .map(ClassMapper::toMemberResponse)
                 .collect(Collectors.toList());
     }
 
@@ -135,7 +86,7 @@ public class ClassServiceImpl implements ClassService {
         classRepo.findById(classId)
                 .orElseThrow(() -> new RuntimeException("Class not found"));
         return memberRepo.findByClassroomIdAndRole(classId, null).stream()
-                .map(this::toMemberResponse)
+                .map(ClassMapper::toMemberResponse)
                 .collect(Collectors.toList());
     }
 
@@ -149,7 +100,7 @@ public class ClassServiceImpl implements ClassService {
                 .orElseThrow(() -> new RuntimeException("Class not found"));
         c.setName(req.getName());
         c.setDescription(req.getDescription());
-        return toClassroomResponse(classRepo.save(c));
+        return ClassMapper.toClassroomResponse(classRepo.save(c));
     }
 
     @Override
@@ -177,6 +128,16 @@ public class ClassServiceImpl implements ClassService {
         cm.setRole(ClassRole.STUDENT);
         cm.setCreator(false);
         memberRepo.save(cm);
+
+        // Nofity the teacher (owner)
+        notificationService.createNotification(
+                c.getOwner().getId(),
+                "Thành viên mới",
+                "User " + userRepo.findById(userId).get().getUsername() + " đã tham gia lớp " + c.getName(),
+                NotificationType.NEW_MEMBER,
+                c.getId(),
+                "CLASS"
+        );
 
         return "Tham gia lớp thành công";
     }
@@ -209,6 +170,17 @@ public class ClassServiceImpl implements ClassService {
         cm.setRole(req.getRole());
         cm.setCreator(false);
         memberRepo.save(cm);
+
+        Classroom c = classRepo.findById(classId).get();
+        // Notify the added user
+        notificationService.createNotification(
+                req.getUserId(),
+                "Lời mời tham gia lớp học",
+                "Bạn đã được thêm vào lớp " + c.getName(),
+                NotificationType.ADDED_TO_CLASS,
+                c.getId(),
+                "CLASS"
+        );
 
         return "Thêm thành viên thành công";
     }
@@ -250,7 +222,7 @@ public class ClassServiceImpl implements ClassService {
                 .orElseThrow(() -> new RuntimeException("Member not found in this class"));
 
         target.setRole(newRole);
-        return toMemberResponse(memberRepo.save(target));
+        return ClassMapper.toMemberResponse(memberRepo.save(target));
     }
 
     @Override
@@ -279,7 +251,23 @@ public class ClassServiceImpl implements ClassService {
                 .dueDate(req.getDueDate())
                 .build();
 
-        return toAssignmentResponse(assignmentRepo.save(assignment));
+        assignment = assignmentRepo.save(assignment);
+
+        // Notify all class members except the creator
+        for (ClassMember targetMem : c.getMembers()) {
+            if (!targetMem.getUser().getId().equals(userId)) {
+                notificationService.createNotification(
+                        targetMem.getUser().getId(),
+                        "Bài tập mới: " + req.getTitle(),
+                        "Lớp " + c.getName() + " vừa có bài tập mới.",
+                        NotificationType.NEW_ASSIGNMENT,
+                        assignment.getId(),
+                        "ASSIGNMENT"
+                );
+            }
+        }
+
+        return ClassMapper.toAssignmentResponse(assignment);
     }
 
     @Override
@@ -289,7 +277,7 @@ public class ClassServiceImpl implements ClassService {
                 .orElseThrow(() -> new RuntimeException("Not a member of this class"));
 
         return assignmentRepo.findByClassroomId(classId).stream()
-                .map(this::toAssignmentResponse)
+                .map(ClassMapper::toAssignmentResponse)
                 .collect(Collectors.toList());
     }
 
@@ -363,7 +351,7 @@ public class ClassServiceImpl implements ClassService {
         }
 
         return submissionRepo.findByAssignmentId(assignmentId).stream()
-                .map(this::toSubmissionResponse)
+                .map(ClassMapper::toSubmissionResponse)
                 .collect(Collectors.toList());
     }
 

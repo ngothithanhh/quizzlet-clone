@@ -88,22 +88,28 @@ public class StudySetServiceImpl implements StudySetService {
     }
 
     @Override
-    public List<StudySetResponse> getAll(Long userId, String keyword) {
+    public List<StudySetResponse> getMyStudySets(Long userId) {
+        // Lấy toàn bộ StudySet của user hiện tại (cả public lẫn private)
+        List<StudySet> studySets = studySetRepository.findByUserId(userId);
+        return studySets.stream()
+                .map(s -> toResponse(s, false))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<StudySetResponse> getAll(String keyword) {
         List<StudySet> studySets;
 
-        if (userId != null && keyword != null && !keyword.isBlank()) {
-            studySets = studySetRepository.findByUserIdAndTitleContainingIgnoreCase(userId, keyword.trim());
-        } else if (userId != null) {
-            studySets = studySetRepository.findByUserId(userId);
-        } else if (keyword != null && !keyword.isBlank()) {
+        if (keyword != null && !keyword.isBlank()) {
             // Tìm kiếm public theo keyword
             studySets = studySetRepository.findByTitleContainingIgnoreCaseAndIsPublicTrue(keyword.trim());
         } else {
+            // Lấy toàn bộ StudySet public của hệ thống
             studySets = studySetRepository.findByIsPublicTrue();
         }
 
         return studySets.stream()
-                .map(s -> toResponse(s, false)) // list view: không cần load flashcards chi tiết
+                .map(s -> toResponse(s, false))
                 .collect(Collectors.toList());
     }
 

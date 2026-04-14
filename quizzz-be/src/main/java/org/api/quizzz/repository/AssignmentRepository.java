@@ -8,4 +8,5 @@ import java.util.List;
 public interface AssignmentRepository extends JpaRepository<Assignment,Long> {
     List<Assignment> findByClassroomId(Long classId);
 
+    List<Assignment> findByDueDateBefore(java.time.LocalDateTime time);
 }

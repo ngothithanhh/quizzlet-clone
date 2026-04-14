@@ -70,4 +70,14 @@ public class FlashcardController {
         flashcardService.importFlashcards(studySetId, file);
         return ResponseEntity.ok(Map.of("message", "Import flashcard thành công"));
     }
+
+    /**
+     * 3.6 Clone/Copy flashcards từ nguồn khác
+     * POST /api/flashcards/clone
+     */
+    @PostMapping("/api/flashcards/clone")
+    public ResponseEntity<Map<String, String>> cloneFlashcards(@Valid @RequestBody org.api.quizzz.dto.request.CloneFlashcardsRequest request) {
+        flashcardService.cloneFlashcards(request);
+        return ResponseEntity.ok(Map.of("message", "Sao chép flashcards thành công"));
+    }
 }

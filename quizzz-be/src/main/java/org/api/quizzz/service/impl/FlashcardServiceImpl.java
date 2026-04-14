@@ -7,9 +7,12 @@ import org.api.quizzz.dto.request.FlashcardRequest;
 import org.api.quizzz.dto.response.FlashcardResponse;
 import org.api.quizzz.entity.Flashcard;
 import org.api.quizzz.entity.StudySet;
+import org.api.quizzz.mapper.FlashcardMapper;
 import org.api.quizzz.repository.FlashcardRepository;
 import org.api.quizzz.repository.StudySetRepository;
 import org.api.quizzz.service.FlashcardService;
+import org.api.quizzz.utils.SecurityUtils;
+import org.api.quizzz.dto.request.CloneFlashcardsRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -25,19 +28,6 @@ public class FlashcardServiceImpl implements FlashcardService {
 
     private final FlashcardRepository flashcardRepository;
     private final StudySetRepository studySetRepository;
-
-    // ========== Mapper helper ==========
-
-    private FlashcardResponse toResponse(Flashcard fc) {
-        return FlashcardResponse.builder()
-                .id(fc.getId())
-                .term(fc.getTerm())
-                .definition(fc.getDefinition())
-                .imageUrl(fc.getImageUrl())
-                .audioUrl(fc.getAudioUrl())
-                .position(fc.getPosition())
-                .build();
-    }
 
     // ========== Service methods ==========
 
@@ -56,7 +46,7 @@ public class FlashcardServiceImpl implements FlashcardService {
                 .position(request.getPosition() != null ? request.getPosition() : 0)
                 .build();
 
-        return toResponse(flashcardRepository.save(flashcard));
+        return FlashcardMapper.toResponse(flashcardRepository.save(flashcard));
     }
 
     @Override
@@ -67,11 +57,14 @@ public class FlashcardServiceImpl implements FlashcardService {
 
         flashcard.setTerm(request.getTerm());
         flashcard.setDefinition(request.getDefinition());
-        if (request.getImageUrl() != null) flashcard.setImageUrl(request.getImageUrl());
-        if (request.getAudioUrl() != null) flashcard.setAudioUrl(request.getAudioUrl());
-        if (request.getPosition() != null) flashcard.setPosition(request.getPosition());
+        if (request.getImageUrl() != null)
+            flashcard.setImageUrl(request.getImageUrl());
+        if (request.getAudioUrl() != null)
+            flashcard.setAudioUrl(request.getAudioUrl());
+        if (request.getPosition() != null)
+            flashcard.setPosition(request.getPosition());
 
-        return toResponse(flashcardRepository.save(flashcard));
+        return FlashcardMapper.toResponse(flashcardRepository.save(flashcard));
     }
 
     @Override
@@ -89,7 +82,7 @@ public class FlashcardServiceImpl implements FlashcardService {
         }
         return flashcardRepository.findByStudySetIdOrderByPositionAsc(studySetId)
                 .stream()
-                .map(this::toResponse)
+                .map(FlashcardMapper::toResponse)
                 .collect(Collectors.toList());
     }
 
@@ -104,7 +97,7 @@ public class FlashcardServiceImpl implements FlashcardService {
         }
 
         try (InputStream is = file.getInputStream();
-             Workbook workbook = new XSSFWorkbook(is)) {
+                Workbook workbook = new XSSFWorkbook(is)) {
 
             Sheet sheet = workbook.getSheetAt(0);
             List<Flashcard> flashcards = new ArrayList<>();
@@ -118,7 +111,8 @@ public class FlashcardServiceImpl implements FlashcardService {
                     .orElse(-1);
 
             for (Row row : sheet) {
-                if (row.getRowNum() == 0) continue; // Bỏ qua dòng header
+                if (row.getRowNum() == 0)
+                    continue; // Bỏ qua dòng header
 
                 String term = formatter.formatCellValue(row.getCell(0));
                 String definition = formatter.formatCellValue(row.getCell(1));
@@ -141,5 +135,72 @@ public class FlashcardServiceImpl implements FlashcardService {
         } catch (Exception e) {
             throw new RuntimeException("Lỗi khi đọc file Excel: " + e.getMessage());
         }
+    }
+
+    @Override
+    @Transactional
+    public void cloneFlashcards(CloneFlashcardsRequest request) {
+        Long userId = SecurityUtils.getCurrentUserId();
+
+        // Kiểm tra StudySet đích
+        StudySet targetStudySet = studySetRepository.findById(request.getTargetStudySetId())
+                .orElseThrow(
+                        () -> new RuntimeException("StudySet đích không tồn tại: " + request.getTargetStudySetId()));
+
+        if (!targetStudySet.getUser().getId().equals(userId)) {
+            throw new RuntimeException("Forbidden: Bạn không có quyền thêm flashcard vào StudySet này.");
+        }
+
+        List<Flashcard> sourceFlashcards = new ArrayList<>();
+
+        if (request.getSourceStudySetId() != null) {
+            StudySet sourceStudySet = studySetRepository.findById(request.getSourceStudySetId())
+                    .orElseThrow(() -> new RuntimeException("StudySet nguồn không tồn tại"));
+
+            // Nếu không phải của mình và không public -> Báo lỗi
+            if (!sourceStudySet.getUser().getId().equals(userId) && !sourceStudySet.getIsPublic()) {
+                throw new RuntimeException("Forbidden: Bạn không có quyền copy tài liệu private của người khác.");
+            }
+
+            sourceFlashcards = flashcardRepository.findByStudySetIdOrderByPositionAsc(sourceStudySet.getId());
+        } else if (request.getSourceFlashcardIds() != null && !request.getSourceFlashcardIds().isEmpty()) {
+            List<Flashcard> cards = flashcardRepository.findAllById(request.getSourceFlashcardIds());
+            for (Flashcard card : cards) {
+                StudySet ss = card.getStudySet();
+                if (!ss.getUser().getId().equals(userId) && !ss.getIsPublic()) {
+                    throw new RuntimeException(
+                            "Forbidden: Phát hiện flashcard thuộc StudySet private mà bạn không được phép copy.");
+                }
+                sourceFlashcards.add(card);
+            }
+        } else {
+            throw new RuntimeException("Vui lòng cung cấp sourceStudySetId hoặc mảng sourceFlashcardIds.");
+        }
+
+        if (sourceFlashcards.isEmpty()) {
+            return;
+        }
+
+        // Tìm vị trí max hiện tại của class đích
+        int maxPosition = flashcardRepository.findByStudySetIdOrderByPositionAsc(targetStudySet.getId())
+                .stream()
+                .mapToInt(Flashcard::getPosition)
+                .max()
+                .orElse(-1);
+
+        List<Flashcard> clonedFlashcards = new ArrayList<>();
+        for (Flashcard orig : sourceFlashcards) {
+            maxPosition++;
+            clonedFlashcards.add(Flashcard.builder()
+                    .studySet(targetStudySet)
+                    .term(orig.getTerm())
+                    .definition(orig.getDefinition())
+                    .imageUrl(orig.getImageUrl())
+                    .audioUrl(orig.getAudioUrl())
+                    .position(maxPosition)
+                    .build());
+        }
+
+        flashcardRepository.saveAll(clonedFlashcards);
     }
 }
