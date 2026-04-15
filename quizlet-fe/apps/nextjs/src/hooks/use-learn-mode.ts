@@ -1,6 +1,7 @@
 import type { MouseEvent } from "react";
 
 import { useLearnModeReducer } from "~/hooks/use-learn-mode-reducer";
+import { useStudySession } from "~/hooks/use-study-session";
 import { api } from "~/trpc/react";
 
 export function useLearnMode(id: string) {
@@ -16,10 +17,15 @@ export function useLearnMode(id: string) {
 
   const [{ index, correct, disabled }, dispatch] = useLearnModeReducer();
 
+  // StudySession tracking — silent fail nếu BE offline
+  const { recordAnswer, endSession } = useStudySession({
+    studySetId: Number(id),
+    mode: "LEARN",
+    enabled: flashcards.length > 0,
+  });
+
   const currentCard = flashcards[index];
-
   const progress = (index / flashcards.length) * 100;
-
   const isCompleted = index === flashcards.length;
 
   const chooseAnswer = (idx: number, event: MouseEvent<HTMLDivElement>) => {
@@ -31,8 +37,9 @@ export function useLearnMode(id: string) {
 
     const button = event.currentTarget;
     const selectedAnswer = currentCard.answers[idx];
+    const isCorrect = selectedAnswer === currentCard.definition;
 
-    if (selectedAnswer === currentCard.definition) {
+    if (isCorrect) {
       button.style.background = "#bbf7d0";
       button.style.borderColor = "#16a34a";
       dispatch({ type: "MARK_CORRECT" });
@@ -41,10 +48,21 @@ export function useLearnMode(id: string) {
       button.style.borderColor = "#e11d48";
     }
 
+    // Track câu trả lời (silent)
+    if ((currentCard as any).id) {
+      recordAnswer((currentCard as any).id as number, isCorrect);
+    }
+
     setTimeout(() => {
       button.style.background = "hsla(var(--background))";
       button.style.borderColor = "hsla(var(--input))";
       dispatch({ type: "ENABLE" });
+
+      // Kết thúc session khi hoàn thành bài
+      if (index + 1 === flashcards.length) {
+        void endSession();
+      }
+
       dispatch({ type: "NEXT_CARD" });
     }, 1000);
   };

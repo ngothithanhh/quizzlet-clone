@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import DarkMode from "~/components/settings/dark-mode";
 import DeleteAccount from "~/components/settings/delete-account";
 import EditProfilePicture from "~/components/settings/edit-profile-picture";
+import ChangePassword from "~/components/settings/change-password";
 
 export const metadata: Metadata = {
   title: "Quizlet - Settings",
@@ -13,9 +14,12 @@ export default function Settings() {
   return (
     <>
       <h2 className="mb-8 text-2xl font-bold">Settings</h2>
-      <EditProfilePicture />
-      <DarkMode />
-      <DeleteAccount />
+      <div className="flex flex-col gap-10">
+        <EditProfilePicture />
+        <ChangePassword />
+        <DarkMode />
+        <DeleteAccount />
+      </div>
     </>
   );
 }

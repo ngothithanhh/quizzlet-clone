@@ -1,0 +1,176 @@
+# Báo cáo Audit: BE API ↔ FE Integration
+
+## Kết quả: Tổng quan nhanh
+
+| Controller BE | FE tRPC Router | Trạng thái |
+|---|---|---|
+| AuthController | `/api/auth/*` Next.js routes | ✅ Đủ |
+| StudySetController | `studySetRouter` | ✅ Đủ (có thiếu update) |
+| FlashcardController | `flashcardRouter` | ⚠️ Thiếu nhiều |
+| FolderController | `folderRouter` | ✅ Đủ |
+| FavoriteController | `starredFlashcardRouter` | ⚠️ Sai endpoint |
+| ClassroomController | ❌ Không có router | ❌ **Chưa nối** |
+| NotificationController | ❌ Không có router | ❌ **Chưa nối** |
+| StudySessionController | ❌ Không có router | ❌ **Chưa nối** |
+| ExternalApiController | ❌ Không có router | ❌ **Chưa nối** |
+| UserController | `userRouter` | ⚠️ Thiếu sessions |
+
+---
+
+## Chi tiết từng nhóm
+
+---
+
+### ✅ Auth — Đủ
+| BE Endpoint | FE | Ghi chú |
+|---|---|---|
+| `POST /api/auth/register/otp` | `signup-form.tsx` gọi trực tiếp BE | ✅ |
+| `POST /api/auth/register` | `signup-form.tsx` gọi trực tiếp BE | ✅ |
+| `POST /api/auth/login/profile` | `/api/auth/login` route handler | ✅ |
+| `POST /api/auth/logout` | `/api/auth/logout` route handler | ✅ |
+| `POST /api/auth/refresh` | `/api/auth/refresh` route + `auth-context.tsx` fetchWithAuth | ✅ **DONE** 2026-04-16 |
+| `POST /api/auth/forgot-password/otp` | `app/forgot-password/page.tsx` Step 1 | ✅ **DONE** 2026-04-16 |
+| `POST /api/auth/forgot-password/reset` | `app/forgot-password/page.tsx` Step 2 | ✅ **DONE** 2026-04-16 |
+| `POST /api/auth/change-password` | `components/settings/change-password.tsx` | ✅ **DONE** 2026-04-16 |
+| `GET /oauth2/authorization/google` | `login-with-oauth.tsx` | ✅ |
+
+---
+
+### ✅ StudySet — Mostly Done (thiếu update)
+| BE Endpoint | FE tRPC | Ghi chú |
+|---|---|---|
+| `GET /api/studysets` | `studySet.popular`, `studySet.latest` | ✅ |
+| `GET /api/studysets/me` | `studySet.allByUser` | ✅ |
+| `GET /api/studysets/{id}` | `studySet.byId` | ✅ |
+| `POST /api/studysets` | `studySet.create` | ✅ |
+| `DELETE /api/studysets/{id}` | `studySet.delete` | ✅ |
+| `GET /api/studysets/{id}/match` | `studySet.matchCards` | ✅ |
+| `GET /api/studysets/{id}/learn` | `studySet.learnCards` | ✅ |
+| `GET /api/studysets/{id}/test` | `studySet.testCards` | ✅ |
+| `PUT /api/studysets/{id}` | ❌ **Chưa có** | → Không sửa được study set sau khi tạo |
+
+---
+
+### ✅ Flashcard — ĐẦY ĐỦ *(2026-04-16)*
+| BE Endpoint | FE tRPC | Ghi chú |
+|---|---|---|
+| `PUT /api/flashcards/{id}` | `flashcard.edit` | ✅ |
+| `POST /api/flashcards` | `flashcard.create` | ✅ |
+| `DELETE /api/flashcards/{id}` | `flashcard.delete` | ✅ |
+| `GET /api/studysets/{id}/flashcards` | nằm trong `studySet.byId` | ✅ |
+| `POST /api/studysets/{id}/flashcards/import` | `flashcard.importExcel` + `ImportExcelDialog` | ✅ |
+| `GET /api/studysets/{id}/flashcards/export` | `flashcard.exportExcel` + Download button | ✅ |
+| `POST /api/flashcards/clone` | `flashcard.clone` + `CloneFlashcardsDialog` | ✅ |
+| `GET /api/flashcards/import/template` | `flashcard.downloadTemplate` | ✅ |
+
+**UI:** Toolbar Import/Export/Clone trên study set form + `FlashcardToolbar` (TTS/Translate/Spellcheck/Upload) mỗi card.
+
+---
+
+### ✅ Folder — Đủ
+| BE Endpoint | FE tRPC | Ghi chú |
+|---|---|---|
+| `GET /api/folders` | `folder.allByUser` | ✅ |
+| `POST /api/folders` | `folder.create` | ✅ |
+| `GET /api/folders/{id}` | `folder.bySlug` | ✅ |
+| `PUT /api/folders/{id}` | `folder.edit` | ✅ |
+| `DELETE /api/folders/{id}` | `folder.delete` | ✅ |
+| `POST /api/folders/{id}/studysets/{id}` | `folder.addSet` | ✅ |
+| `DELETE /api/folders/{id}/studysets/{id}` | `folder.removeSet` | ✅ |
+
+---
+
+### ✅ Favorite — ĐÃ NỐI VÀO FE *(2026-04-16)*
+| BE Endpoint | FE tRPC | Ghi chú |
+|---|---|---|
+| `POST /api/favorites/{studySetId}` | `favorite.add` | ✅ |
+| `DELETE /api/favorites/{studySetId}` | `favorite.remove` | ✅ |
+| `GET /api/favorites` | `favorite.getAll` + `/favorites` page | ✅ |
+
+**Page:** `/favorites` — grid cards yêu thích, nút bỏ yêu thích, empty state.
+
+---
+
+### ✅ Classroom — ĐÃ NỐI VÀO FE *(2026-04-16)*
+| BE Endpoint | FE | Ghi chú |
+|---|---|---|
+| `POST /api/classes` | `classroom.create` + `CreateClassDialog` | ✅ |
+| `GET /api/classes/{id}` | `classroom.byId` + `/classes/[id]/page.tsx` | ✅ |
+| `GET /api/classes/my` | `classroom.allMine` + `/classes/page.tsx` | ✅ |
+| `PUT /api/classes/{id}` | `classroom.update` | ✅ |
+| `DELETE /api/classes/{id}` | `classroom.delete` + confirm dialog | ✅ |
+| `POST /api/classes/join` | `classroom.join` + `JoinClassDialog` | ✅ |
+| `POST /api/classes/{id}/invite-code` | `classroom.regenerateInviteCode` | ✅ |
+| `POST /api/classes/{id}/members` | `classroom.addMember` | ✅ |
+| `DELETE /api/classes/{id}/members/{uid}` | `classroom.removeMember` + `MembersTab` | ✅ |
+| `POST /api/classes/{id}/leave` | `classroom.leave` | ✅ |
+| `PUT /api/classes/{id}/members/{uid}/role` | `classroom.updateMemberRole` | ✅ |
+| `POST /api/classes/{id}/assignments` | `classroom.createAssignment` + dialog | ✅ |
+| `GET /api/classes/{id}/assignments` | `classroom.assignments` + `AssignmentsTab` | ✅ |
+| `POST /api/classes/assignments/{id}/submit` | `classroom.submitAssignment` | ✅ |
+| `GET /api/classes/assignments/{id}/my-result` | `classroom.myResult` + result page | ✅ |
+| `GET /api/classes/assignments/{id}/submissions` | `classroom.submissions` + teacher view | ✅ |
+
+**Pages:** `/classes`, `/classes/[id]`, `/classes/[id]/assignments/[id]`
+
+---
+
+### ✅ Notification — ĐÃ NỐI VÀO FE *(2026-04-16)*
+| BE Endpoint | FE | Ghi chú |
+|---|---|---|
+| `GET /api/notifications` | `notification.all` + `NotificationBell` dropdown | ✅ |
+| `PUT /api/notifications/{id}/read` | `notification.markRead` (click từng thông báo) | ✅ |
+| `PUT /api/notifications/read-all` | `notification.markAllRead` (nút "Đọc tất cả") | ✅ |
+| `GET /api/notifications/unread-count` | `notification.unreadCount` polling 30s + badge đỏ | ✅ |
+
+**Component:** `NotificationBell` trên Navbar, chỉ hiện khi đã đăng nhập.
+
+---
+
+### ✅ StudySession — ĐÃ NỐI VÀO FE *(2026-04-16)*
+| BE Endpoint | FE | Ghi chú |
+|---|---|---|
+| `POST /api/study/start` | `studySession.start` + `useStudySession` hook (auto-start khi mount) | ✅ |
+| `POST /api/study/answer` | `studySession.answer` + `recordAnswer()` mỗi câu trả lời | ✅ |
+| `POST /api/study/end` | `studySession.end` + `endSession()` khi hoàn thành | ✅ |
+| `GET /api/users/me/sessions` | `activity.allByUser` (dùng ngày) | ⚠️ Chỉ lấy date để vẽ calendar |
+
+**Hook:** `useStudySession` tích hợp vào `learn-mode`, silent fail nếu BE offline.
+
+---
+
+### ❌ External API — CHƯA NỐI VÀO FE
+| BE Endpoint | FE | Ghi chú |
+|---|---|---|
+| `POST /api/external/upload/image` | ❌ | Upload ảnh flashcard |
+| `POST /api/external/upload/audio` | ❌ | Upload audio flashcard |
+| `GET /api/external/tts` | ❌ | Text-to-speech |
+| `GET /api/external/translate` | ❌ | Dịch thuật |
+| `POST /api/external/spellcheck` | ❌ | Kiểm tra chính tả |
+| `GET /api/external/wikipedia` | ❌ | Tóm tắt Wikipedia |
+
+---
+
+## Kết luận: Các chức năng chưa có trong FE
+
+### 🔴 Chưa có UI — cần làm từ đầu
+*(Không còn item nào trong nhóm này)*
+
+### 🟡 Có UI nhưng chưa nối API
+1. **StudySet update** — `PUT /api/studysets/{id}` — trang edit form cần thêm PUT mutation
+
+### 🟢 Đã nối hoàn chỉnh *(cập nhật 2026-04-16)*
+- Auth (login/register/logout/Google OAuth)
+- **Forgot Password** — trang 2 bước: gửi OTP → đặt lại mật khẩu ✅
+- **Change Password** — component trong trang `/settings` ✅
+- **Auto Refresh Token** — `fetchWithAuth` interceptor + `/api/auth/refresh` route ✅
+- **Classroom** — `/classes`, `/classes/[id]`, assignments, members, join/leave ✅
+- **Notifications** — Bell icon Navbar, badge đếm, dropdown, mark read ✅
+- **StudySession Tracking** — `useStudySession` hook tích hợp vào learn mode ✅
+- **Favorites** — `/favorites` page, getAll, add, remove ✅
+- **Flashcard CRUD đầy đủ** — create, delete, edit, import/export Excel, clone, template ✅
+- **External APIs** — TTS, translate, spellcheck, upload image/audio (FlashcardToolbar) ✅
+- StudySet (CRUD cơ bản + game modes: match/learn/test)
+- Folder (full CRUD + thêm/xóa study set)
+- User profile (get/update)
+- Activity calendar (từ sessions data)

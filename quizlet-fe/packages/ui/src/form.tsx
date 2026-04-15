@@ -5,6 +5,7 @@ import type {
   ControllerProps,
   FieldPath,
   FieldValues,
+  Resolver,
   UseFormProps,
 } from "react-hook-form";
 import type { ZodType, ZodTypeDef } from "zod";
@@ -26,15 +27,19 @@ const useForm = <
   TOut extends FieldValues,
   TDef extends ZodTypeDef,
   TIn extends FieldValues,
->(
-  props: Omit<UseFormProps<TIn>, "resolver"> & {
-    schema: ZodType<TOut, TDef, TIn>;
-  },
-) => {
-  const form = __useForm<TIn, unknown, TOut>({
+>({
+  schema,
+  ...props
+}: Omit<UseFormProps<TIn>, "resolver"> & {
+  schema: ZodType<TOut, TDef, TIn>;
+}) => {
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore — version mismatch: react-hook-form / @hookform/resolvers type incompatibility, safe at runtime
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const form = (__useForm as any)<TIn, unknown, TOut>({
     ...props,
-    resolver: zodResolver(props.schema, undefined),
-  });
+    resolver: zodResolver(schema),
+  }) as ReturnType<typeof __useForm<TIn, unknown, TOut>>;
 
   return form;
 };

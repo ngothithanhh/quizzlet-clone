@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { LoaderIcon, AlertCircle } from "lucide-react";
 
 import { Button } from "@acme/ui/button";
 import { Input } from "@acme/ui/input";
 import { Label } from "@acme/ui/label";
+import { useAuth } from "~/contexts/auth-context";
 
 interface LoginWithEmailProps {
   onSuccess?: () => void;
@@ -17,7 +17,7 @@ const LoginWithEmail: React.FC<LoginWithEmailProps> = ({ onSuccess }) => {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const router = useRouter();
+  const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,88 +25,17 @@ const LoginWithEmail: React.FC<LoginWithEmailProps> = ({ onSuccess }) => {
     setError(null);
 
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            email,
-            password,
-          }),
-        }
-      );
+      // Gọi AuthContext.login() → POST /api/auth/login (Next.js route)
+      // → BE POST /api/auth/login/profile → trả { accessToken, refreshToken, user }
+      // → Token được lưu vào httpOnly cookie bởi Next.js route handler
+      const result = await login(email, password);
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        setError(errorData.message || "Login failed");
+      if (result.error) {
+        setError(result.error);
         return;
       }
 
-      const data = await response.json();
-
-      // Save tokens to localStorage
-      if (data.accessToken) {
-        localStorage.setItem("access_token", data.accessToken);
-        if (data.refreshToken) {
-          localStorage.setItem("refresh_token", data.refreshToken);
-        }
-
-        // Get user profile from backend
-        try {
-          const profileResponse = await fetch(
-            `${process.env.NEXT_PUBLIC_API_URL}/api/users/me`,
-            {
-              method: "GET",
-              headers: {
-                "Authorization": `Bearer ${data.accessToken}`,
-              },
-            }
-          );
-
-          let userName = email.split("@")[0];
-          let userImage = null;
-
-          if (profileResponse.ok) {
-            const profileData = await profileResponse.json();
-            userName = profileData.username || userName;
-            userImage = profileData.avatarUrl || null;
-          }
-
-          // Create NextAuth session
-          await fetch("/api/auth/callback/email", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              email,
-              name: userName,
-              image: userImage,
-            }),
-          });
-        } catch (profileError) {
-          console.error("Profile fetch error:", profileError);
-          // Continue with basic session
-          await fetch("/api/auth/callback/email", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              email,
-              name: email.split("@")[0],
-            }),
-          });
-        }
-
-        // Close dialog and redirect
-        onSuccess?.();
-        setTimeout(() => {
-          router.refresh();
-          router.push("/");
-        }, 500);
-      } else {
-        setError(data.message || "Login failed - no token received");
-      }
+      onSuccess?.();
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "An error occurred during login"

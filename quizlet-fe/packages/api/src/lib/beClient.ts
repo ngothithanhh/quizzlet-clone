@@ -77,3 +77,65 @@ export const bePut = <T>(path: string, body?: unknown, token?: string | null) =>
 
 export const beDelete = <T>(path: string, token?: string | null) =>
   beFetch<T>(path, { method: "DELETE", token });
+
+/**
+ * Gửi request với FormData (multipart/form-data).
+ * Không set Content-Type để browser tự set boundary.
+ */
+export async function bePostForm<T>(
+  path: string,
+  formData: FormData,
+  token?: string | null,
+): Promise<T> {
+  const headers: Record<string, string> = {};
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
+  const res = await fetch(`${BE_BASE_URL}${path}`, {
+    method: "POST",
+    headers,
+    body: formData,
+  });
+
+  if (res.status === 204) return undefined as T;
+
+  const contentType = res.headers.get("content-type") ?? "";
+  const data = contentType.includes("application/json")
+    ? await res.json()
+    : await res.text();
+
+  if (!res.ok) {
+    const message =
+      typeof data === "object" && data !== null
+        ? (data as any).message ?? res.statusText
+        : res.statusText;
+    throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message });
+  }
+  return data as T;
+}
+
+/**
+ * GET và trả về base64 string cho binary/blob (Excel, audio, image...).
+ * Dùng Buffer.from để hoạt động cả ở server-side (tRPC).
+ */
+export async function beGetBlob(
+  path: string,
+  token?: string | null,
+): Promise<{ base64: string; contentType: string; filename: string }> {
+  const headers: Record<string, string> = {};
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
+  const res = await fetch(`${BE_BASE_URL}${path}`, { method: "GET", headers });
+
+  if (!res.ok) {
+    throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: res.statusText });
+  }
+
+  const arrayBuffer = await res.arrayBuffer();
+  const contentType = res.headers.get("content-type") ?? "application/octet-stream";
+  const disposition = res.headers.get("content-disposition") ?? "";
+  const filenameMatch = disposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+  const filename = filenameMatch?.[1]?.replace(/['"]/g, "") ?? "download";
+  const base64 = Buffer.from(arrayBuffer).toString("base64");
+
+  return { base64, contentType, filename };
+}

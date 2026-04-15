@@ -45,6 +45,12 @@ const UserDropdown = () => {
         <Link href={`/users/${user.id}`}>
           <DropdownMenuItem>Profile</DropdownMenuItem>
         </Link>
+        <Link href="/favorites">
+          <DropdownMenuItem>❤️ Yêu thích</DropdownMenuItem>
+        </Link>
+        <Link href="/classes">
+          <DropdownMenuItem>🏫 Lớp học</DropdownMenuItem>
+        </Link>
         <Link href="/settings">
           <DropdownMenuItem>Settings</DropdownMenuItem>
         </Link>

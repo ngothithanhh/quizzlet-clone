@@ -49,7 +49,7 @@ export default function Hero() {
               <Button
                 size="lg"
                 variant="outline"
-                className="border-white text-white hover:bg-white/10 font-semibold px-8"
+                className="border-white text-white hover:bg-white/20 hover:text-white font-semibold px-8"
                 asChild
               >
                 <Link href="/create-set">

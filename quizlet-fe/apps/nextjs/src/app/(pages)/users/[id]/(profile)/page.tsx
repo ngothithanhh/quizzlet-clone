@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import ActivityCalendar from "~/components/user/activity-calendar";
+import FavoriteStudySets from "~/components/user/favorite-study-sets";
 import { api } from "~/trpc/server";
 
 interface UserOverviewProps {
@@ -23,6 +24,7 @@ export default async function UserOverview({ params: { id } }: UserOverviewProps
       <div className="flex items-center justify-center rounded-lg bg-secondary p-4">
         <ActivityCalendar activity={activity} />
       </div>
+      <FavoriteStudySets />
     </div>
   );
 }

@@ -1,3 +1,5 @@
+"use client";
+
 import { CircleAlert, X } from "lucide-react";
 
 import { useAuth } from "~/contexts/auth-context";

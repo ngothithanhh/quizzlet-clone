@@ -62,7 +62,7 @@ export default function RootLayout(props: { children: React.ReactNode }) {
                 <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
                   <TRPCReactProvider>
                     <Navbar />
-                    <main className="container min-h-[calc(100vh-65px)] py-8">
+                    <main className="min-h-[calc(100vh-65px)]">
                       {props.children}
                     </main>
                     <Toaster richColors />

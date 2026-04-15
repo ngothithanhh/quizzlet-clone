@@ -5,18 +5,9 @@ import { StudySetSchema } from "@acme/validators";
 
 import { beDelete, beGet, bePost, bePut } from "../lib/beClient";
 import { protectedProcedure, publicProcedure } from "../trpc";
+import type { FlashcardResponse } from "./flashcard";
 
-interface FlashcardResponse {
-  id: number;
-  term: string;
-  definition: string;
-  position: number;
-  studySetId: number;
-  imageUrl?: string;
-  audioUrl?: string;
-}
-
-interface StudySetResponse {
+export interface StudySetResponse {
   id: number;
   title: string;
   description?: string;
@@ -29,7 +20,7 @@ interface StudySetResponse {
   updatedAt: string;
 }
 
-const mapToFrontendStudySet = (beSet: any): StudySetResponse => ({
+export const mapToFrontendStudySet = (beSet: any): StudySetResponse => ({
   ...beSet,
   user: {
     id: beSet.userId || 0,
@@ -58,6 +49,8 @@ export const studySetRouter = {
   allByUser: publicProcedure
     .input(z.object({ userId: z.string().or(z.number()).optional() }))
     .query(async ({ ctx }) => {
+      // /api/studysets/me requires auth — return empty if no token
+      if (!ctx.token) return [];
       const data = await beGet<any[]>("/api/studysets/me", ctx.token);
       return (data || []).map(mapToFrontendStudySet);
     }),
@@ -95,11 +88,50 @@ export const studySetRouter = {
       return mapToFrontendStudySet(data);
     }),
 
+  /** PUT /api/studysets/:id */
+  update: protectedProcedure
+    .input(StudySetSchema.extend({ id: z.string().or(z.number()) }))
+    .mutation(async ({ input, ctx }) => {
+      const { id, ...rest } = input;
+      const flashcards = rest.flashcards.map((f, i) => ({ ...f, position: i }));
+      const data = await bePut<any>(`/api/studysets/${id}`, { ...rest, flashcards }, ctx.token);
+      return mapToFrontendStudySet(data);
+    }),
+
   /** DELETE /api/studysets/:id */
   delete: protectedProcedure
     .input(z.object({ id: z.string().or(z.number()) }))
     .mutation(async ({ input, ctx }) => {
       return beDelete(`/api/studysets/${input.id}`, ctx.token);
+    }),
+
+  /** Combine — merge flashcards từ nhiều study sets thành set mới */
+  combine: protectedProcedure
+    .input(z.object({ id: z.string(), studySets: z.string().array() }))
+    .mutation(async ({ input, ctx }) => {
+      // Lấy flashcards từ set gốc + tất cả sets được chọn
+      const allIds = [input.id, ...input.studySets];
+      const allSets = await Promise.all(
+        allIds.map((sid) => beGet<any>(`/api/studysets/${sid}`, ctx.token)),
+      );
+      const mergedFlashcards = allSets.flatMap((s: any) =>
+        (s?.flashcards ?? []).map(({ term, definition, position }: FlashcardResponse) => ({
+          term,
+          definition,
+          position,
+        })),
+      );
+      const data = await bePost<any>(
+        "/api/studysets",
+        {
+          title: `${allSets[0]?.title ?? "Combined"} (combined)`,
+          description: `Combined from ${allIds.length} study sets`,
+          flashcards: mergedFlashcards,
+          isPublic: true,
+        },
+        ctx.token,
+      );
+      return mapToFrontendStudySet(data);
     }),
 
   /** Match cards — lấy flashcards rồi tạo pairs trên FE */

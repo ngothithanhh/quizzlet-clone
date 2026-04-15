@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
 
 const BE_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080/quizzlet-clone";
@@ -22,18 +21,25 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // BE trả về flat object: { id, username, email, avatarUrl, accessToken, refreshToken }
     const data = await res.json();
-    // data = { accessToken, refreshToken, user: { id, email, username, ... } }
 
-    const response = NextResponse.json({ user: data.user });
+    // Xây dựng user object từ các field của LoginResponse
+    const user = {
+      id: data.id,
+      email: data.email,
+      username: data.username,
+      avatarUrl: data.avatarUrl,
+    };
 
-    const cookieStore = cookies();
-    const secure = process.env.NODE_ENV === "production";
+    const response = NextResponse.json({ user });
+
+    const isProduction = process.env.NODE_ENV === "production";
     const maxAge = 60 * 60 * 24; // 24h
 
     response.cookies.set("access_token", data.accessToken, {
       httpOnly: true,
-      secure,
+      secure: isProduction,
       sameSite: "lax",
       path: "/",
       maxAge,
@@ -42,7 +48,7 @@ export async function POST(req: NextRequest) {
     if (data.refreshToken) {
       response.cookies.set("refresh_token", data.refreshToken, {
         httpOnly: true,
-        secure,
+        secure: isProduction,
         sameSite: "lax",
         path: "/",
         maxAge: 60 * 60 * 24 * 30, // 30 days

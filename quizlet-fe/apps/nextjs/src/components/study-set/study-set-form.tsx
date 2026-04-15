@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Reorder } from "framer-motion";
-import { LoaderCircle, PlusIcon, Trash2Icon } from "lucide-react";
+import { Download, LoaderCircle, PlusIcon, Trash2Icon } from "lucide-react";
 
 import type { RouterOutputs } from "@acme/api";
 import type { StudySetValues } from "@acme/validators";
@@ -23,11 +23,15 @@ import {
 } from "@acme/ui/form";
 import { Input } from "@acme/ui/input";
 import { Label } from "@acme/ui/label";
+import { Separator } from "@acme/ui/separator";
 import { Textarea } from "@acme/ui/textarea";
 import { toast } from "@acme/ui/toast";
 import { StudySetSchema } from "@acme/validators";
 
 import { api } from "~/trpc/react";
+import CloneFlashcardsDialog from "./clone-flashcards-dialog";
+import FlashcardToolbar from "./flashcard-toolbar";
+import ImportExcelDialog from "./import-excel-dialog";
 
 const initialFlashcards = Array.from({ length: 4 }, (_, index) => ({
   term: "",
@@ -57,22 +61,42 @@ const StudySetForm = ({ defaultValues }: StudySetFormProps) => {
   const ref = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const utils = api.useUtils();
+  const isEditing = !!defaultValues?.id;
   const create = api.studySet.create.useMutation({
     onSuccess() {
       form.reset({});
-      toast.success(`${defaultValues ? "Saved" : "Created new"} study set`);
+      toast.success("Created new study set");
       void utils.studySet.invalidate();
-
-      const route = defaultValues
-        ? `/study-sets/${defaultValues.id}`
-        : "/latest";
-
-      router.push(route);
+      router.push("/latest");
     },
     onError(error) {
       toast.error(error.message);
     },
   });
+  const update = api.studySet.update.useMutation({
+    onSuccess(data) {
+      toast.success("Study set saved");
+      void utils.studySet.invalidate();
+      router.push(`/study-sets/${data.id}`);
+    },
+    onError(error) {
+      toast.error(error.message);
+    },
+  });
+
+  // Export Excel
+  const exportMutation = api.flashcard.exportExcel.useMutation({
+    onSuccess: (data) => {
+      const link = document.createElement("a");
+      link.href = `data:${data.contentType};base64,${data.base64}`;
+      link.download = data.filename || "flashcards.xlsx";
+      link.click();
+      toast.success("Đã xuất file Excel!");
+    },
+    onError: () => toast.error("Xuất Excel thất bại"),
+  });
+
+  const isPending = isEditing ? update.isPending : create.isPending;
   const [isInitialRender, setIsInitialRender] = useState(true);
   const [active, setActive] = useState(0);
 
@@ -94,10 +118,11 @@ const StudySetForm = ({ defaultValues }: StudySetFormProps) => {
       position: index,
     }));
 
-    create.mutate({
-      ...values,
-      flashcards,
-    });
+    if (isEditing && defaultValues?.id) {
+      update.mutate({ ...values, flashcards, id: defaultValues.id });
+    } else {
+      create.mutate({ ...values, flashcards });
+    }
   };
 
   const addFlashcard = () => {
@@ -154,19 +179,55 @@ const StudySetForm = ({ defaultValues }: StudySetFormProps) => {
               </FormItem>
             )}
           />
+
+          {/* ── Flashcards section ── */}
           <div>
-            <Label
-              className={cn({
-                "text-destructive": form.formState.errors.flashcards?.root,
-              })}
-            >
-              Flashcards
-            </Label>
+            <div className="flex items-center justify-between mb-2">
+              <Label
+                className={cn({
+                  "text-destructive": form.formState.errors.flashcards?.root,
+                })}
+              >
+                Flashcards
+              </Label>
+
+              {/* Toolbar: Import | Export | Clone */}
+              <div className="flex items-center gap-1.5">
+                {isEditing && defaultValues?.id && (
+                  <>
+                    <ImportExcelDialog
+                      studySetId={defaultValues.id}
+                      onSuccess={() => void utils.studySet.invalidate()}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="gap-2 text-xs h-8"
+                      onClick={() =>
+                        exportMutation.mutate({ studySetId: defaultValues.id! })
+                      }
+                      disabled={exportMutation.isPending}
+                    >
+                      {exportMutation.isPending ? (
+                        <LoaderCircle size={13} className="animate-spin" />
+                      ) : (
+                        <Download size={13} />
+                      )}
+                      Export Excel
+                    </Button>
+                    <CloneFlashcardsDialog currentStudySetId={defaultValues.id} />
+                  </>
+                )}
+              </div>
+            </div>
+
             {form.formState.errors.flashcards?.root && (
-              <p className="text-[0.8rem] font-medium text-destructive">
+              <p className="text-[0.8rem] font-medium text-destructive mb-2">
                 {form.formState.errors.flashcards.root.message}
               </p>
             )}
+
             <Reorder.Group
               axis="y"
               values={fields}
@@ -190,15 +251,31 @@ const StudySetForm = ({ defaultValues }: StudySetFormProps) => {
                   <Card>
                     <CardHeader className="pb-4">
                       <div className="flex items-center justify-between">
-                        <span>{index + 1}</span>
-                        <Button
-                          type="button"
-                          onClick={() => remove(index)}
-                          size="icon"
-                          variant="ghost"
-                        >
-                          <Trash2Icon size={16} />
-                        </Button>
+                        <span className="text-sm text-gray-500 font-medium">{index + 1}</span>
+                        <div className="flex items-center gap-1">
+                          {/* External API toolbar (TTS, Translate, Spellcheck, Upload) */}
+                          <FlashcardToolbar
+                            term={form.watch(`flashcards.${index}.term`)}
+                            definition={form.watch(`flashcards.${index}.definition`)}
+                            onTranslated={(tr) =>
+                              form.setValue(
+                                `flashcards.${index}.definition`,
+                                tr,
+                                { shouldValidate: true },
+                              )
+                            }
+                          />
+                          <Separator orientation="vertical" className="h-5 mx-1" />
+                          <Button
+                            type="button"
+                            onClick={() => remove(index)}
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 text-gray-400 hover:text-red-500"
+                          >
+                            <Trash2Icon size={14} />
+                          </Button>
+                        </div>
                       </div>
                     </CardHeader>
                     <CardContent className="flex gap-4">
@@ -266,12 +343,12 @@ const StudySetForm = ({ defaultValues }: StudySetFormProps) => {
             </Button>
           </div>
           <Button
-            disabled={create.isPending}
+            disabled={isPending}
             type="submit"
             className="w-full"
             size="lg"
           >
-            {create.isPending ? (
+            {isPending ? (
               <LoaderCircle size={16} className="animate-spin" />
             ) : (
               <>{defaultValues ? "Save" : "Create"} study set</>
