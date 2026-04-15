@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Edit } from "lucide-react";
 
-import type { Session } from "@acme/auth";
+
 import { Button } from "@acme/ui/button";
 import {
   Tooltip,
@@ -12,20 +12,20 @@ import {
 
 import StudySetFoldersDialog from "./study-set-folders-dialog";
 import StudySetOptionsDropdown from "./study-set-options-dropdown";
-import StudySetShareDialog from "./study-set-share-dialog";
+import { useAuth } from "~/contexts/auth-context";
 
 interface StudySetCTAProps {
-  session: Session | null;
   id: string;
   userId: string;
 }
 
-const StudySetCTA = ({ session, id, userId }: StudySetCTAProps) => {
+const StudySetCTA = ({ id, userId }: StudySetCTAProps) => {
+  const { isLoggedIn, user } = useAuth();
   return (
     <TooltipProvider delayDuration={0}>
       <div className="flex gap-2">
-        {session && <StudySetFoldersDialog session={session} />}
-        {session?.user.id === userId && (
+        {isLoggedIn && <StudySetFoldersDialog />}
+        {user?.id === userId && (
           <Tooltip>
             <Link href={`/study-sets/${id}/edit`}>
               <TooltipTrigger asChild>
@@ -43,8 +43,8 @@ const StudySetCTA = ({ session, id, userId }: StudySetCTAProps) => {
         <StudySetShareDialog id={id} />
         <StudySetOptionsDropdown
           id={id}
-          isOwner={session?.user.id === userId}
-          userId={session?.user.id}
+          isOwner={user?.id === userId}
+          userId={user?.id?.toString()}
         />
       </div>
     </TooltipProvider>

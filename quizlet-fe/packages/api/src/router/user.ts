@@ -1,46 +1,37 @@
 import type { TRPCRouterRecord } from "@trpc/server";
-import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
-import { deleteUser, updateUser } from "@acme/db/mutations";
-import { getUserQuery } from "@acme/db/queries";
-
+import { beDelete, beGet, bePut } from "../lib/beClient";
 import { protectedProcedure, publicProcedure } from "../trpc";
 
+interface UserProfileResponse {
+  id: number;
+  username: string;
+  email: string;
+  avatarUrl?: string;
+  bio?: string;
+  createdAt: string;
+}
+
 export const userRouter = {
+  /** GET /api/users/me */
   byId: publicProcedure
-    .input(z.object({ id: z.string() }))
-    .query(async ({ input, ctx }) => {
-      const user = await getUserQuery(ctx.db, input.id);
-
-      if (!user) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "User with provided id not found",
-        });
-      }
-
-      return user;
+    .input(z.object({ id: z.string().or(z.number()).optional() }))
+    .query(async ({ ctx }) => {
+      return beGet<UserProfileResponse>("/api/users/me", ctx.token);
     }),
+
+  /** PUT /api/users/me */
   update: protectedProcedure
-    .input(z.object({ image: z.string() }))
+    .input(z.object({ image: z.string().optional(), username: z.string().optional() }))
     .mutation(async ({ input, ctx }) => {
-      const user = await updateUser(ctx.db, {
-        ...input,
-        id: ctx.session.user.id,
-      });
-
-      if (!user) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-        });
-      }
-
-      return user;
+      return bePut<UserProfileResponse>("/api/users/me", input, ctx.token);
     }),
+
+  /** DELETE /api/users/:id */
   delete: protectedProcedure
-    .input(z.object({ id: z.string() }))
+    .input(z.object({ id: z.string().or(z.number()) }))
     .mutation(async ({ input, ctx }) => {
-      return await deleteUser(ctx.db, input.id);
+      return beDelete(`/api/users/${input.id}`, ctx.token);
     }),
 } satisfies TRPCRouterRecord;

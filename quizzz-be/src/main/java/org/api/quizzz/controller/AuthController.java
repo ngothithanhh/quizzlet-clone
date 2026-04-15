@@ -66,6 +66,16 @@ public class AuthController {
     }
 
     /**
+     * Đăng nhập và trả về thông tin user kèm tokens (recommended).
+     * POST /api/auth/login/profile
+     */
+    @PostMapping("/login/profile")
+    public ResponseEntity<org.api.quizzz.dto.response.LoginResponse> loginWithProfile(@RequestBody LoginRequest request) {
+        org.api.quizzz.dto.response.LoginResponse response = authService.loginWithProfile(request.getEmail(), request.getPassword());
+        return ResponseEntity.ok(response);
+    }
+
+    /**
      * Làm mới accessToken bằng refreshToken.
      * POST /api/auth/refresh?refreshToken=...
      */
@@ -73,6 +83,16 @@ public class AuthController {
     public ResponseEntity<Map<String, String>> refreshToken(@RequestParam String refreshToken) {
         String newAccessToken = authService.refreshAccessToken(refreshToken);
         return ResponseEntity.ok(Map.of("accessToken", newAccessToken));
+    }
+
+    /**
+     * Đăng xuất: Thu hồi refresh token.
+     * POST /api/auth/logout?refreshToken=...
+     */
+    @PostMapping("/logout")
+    public ResponseEntity<Map<String, String>> logout(@RequestParam String refreshToken) {
+        authService.logout(refreshToken);
+        return ResponseEntity.ok(Map.of("message", "Đăng xuất thành công"));
     }
 
     /**

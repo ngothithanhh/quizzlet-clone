@@ -4,7 +4,7 @@ import type { MouseEvent } from "react";
 import { Star } from "lucide-react";
 
 import type { RouterOutputs } from "@acme/api";
-import type { Session } from "@acme/auth";
+import { useAuth } from "~/contexts/auth-context";
 import { cn } from "@acme/ui";
 import { Button } from "@acme/ui/button";
 
@@ -14,24 +14,23 @@ import EditFlashcardDialog from "../shared/edit-flashcard-dialog";
 
 interface FlipCardContentProps {
   flashcard: RouterOutputs["studySet"]["byId"]["flashcards"][0];
-  session: Session | null;
   editable?: boolean;
   back?: boolean;
 }
 
 const FlipCardContent = ({
   flashcard,
-  session,
   back,
   editable,
 }: FlipCardContentProps) => {
+  const { isLoggedIn } = useAuth();
   const { toggleStar } = useStar(flashcard);
   const { onOpenChange } = useSignInDialogContext();
 
   const onStarClick = (event: MouseEvent) => {
     event.stopPropagation();
 
-    if (session) {
+    if (isLoggedIn) {
       toggleStar();
     } else {
       onOpenChange(true);

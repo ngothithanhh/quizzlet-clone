@@ -1,91 +1,83 @@
 import type { TRPCRouterRecord } from "@trpc/server";
-import { TRPCError } from "@trpc/server";
-import slugify from "slugify";
 import { z } from "zod";
 
-import {
-  createFolder,
-  createFolderToStudySet,
-  deleteFolder,
-  deleteFolderToStudySet,
-  editFolder,
-} from "@acme/db/mutations";
-import { getFolderQuery, getUserFoldersQuery } from "@acme/db/queries";
-import {
-  AddSetSchema,
-  CreateFolderSchema,
-  EditFolderSchema,
-} from "@acme/validators";
-
+import { beDelete, beGet, bePost, bePut } from "../lib/beClient";
 import { protectedProcedure, publicProcedure } from "../trpc";
 
+interface FolderResponse {
+  id: number;
+  name: string;
+  description?: string;
+  userId: number;
+  studySets?: unknown[];
+  slug: string;
+  studySetsCount: number;
+}
+
+const mapToFrontendFolder = (beFolder: any): FolderResponse => ({
+  ...beFolder,
+  userId: beFolder.userId || 1, // Fallback if missing
+  slug: beFolder.id ? beFolder.id.toString() : "",
+  studySetsCount: beFolder.studySets ? beFolder.studySets.length : 0,
+});
+
 export const folderRouter = {
+  /** GET /api/folders — folders của user hiện tại */
   allByUser: publicProcedure
-    .input(z.object({ userId: z.string() }))
-    .query(async ({ input, ctx }) => {
-      return await getUserFoldersQuery(ctx.db, input.userId);
+    .input(z.object({ userId: z.string().or(z.number()).optional() }))
+    .query(async ({ ctx }) => {
+      const data = await beGet<any[]>("/api/folders", ctx.token);
+      return (data || []).map(mapToFrontendFolder);
     }),
+
+  /** POST /api/folders */
   create: protectedProcedure
-    .input(CreateFolderSchema)
+    .input(z.object({ name: z.string(), description: z.string().optional() }))
     .mutation(async ({ input, ctx }) => {
-      const slug = slugify(input.name);
-
-      const folder = await createFolder(ctx.db, {
-        ...input,
-        slug,
-        userId: ctx.session.user.id,
-      });
-
-      if (!folder) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Could not create folder",
-        });
-      }
-
-      return folder;
+      return bePost<FolderResponse>("/api/folders", input, ctx.token);
     }),
+
+  /** GET /api/folders/:id */
   bySlug: publicProcedure
-    .input(z.object({ slug: z.string() }))
+    .input(z.object({ slug: z.string().or(z.number()) }))
     .query(async ({ input, ctx }) => {
-      const folder = await getFolderQuery(ctx.db, input.slug);
-
-      if (!folder) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Folder not found",
-        });
-      }
-
-      return folder;
+      const data = await beGet<any>(`/api/folders/${input.slug}`, ctx.token);
+      return mapToFrontendFolder(data);
     }),
+
+  /** POST /api/folders/:folderId/studysets/:studySetId */
   addSet: protectedProcedure
-    .input(AddSetSchema)
+    .input(z.object({ folderId: z.string().or(z.number()), studySetId: z.string().or(z.number()) }))
     .mutation(async ({ input, ctx }) => {
-      return await createFolderToStudySet(ctx.db, input);
+      return bePost<void>(
+        `/api/folders/${input.folderId}/studysets/${input.studySetId}`,
+        undefined,
+        ctx.token,
+      );
     }),
+
+  /** DELETE /api/folders/:folderId/studysets/:studySetId */
   removeSet: protectedProcedure
-    .input(AddSetSchema)
+    .input(z.object({ folderId: z.string().or(z.number()), studySetId: z.string().or(z.number()) }))
     .mutation(async ({ input, ctx }) => {
-      return await deleteFolderToStudySet(ctx.db, input);
+      return beDelete(
+        `/api/folders/${input.folderId}/studysets/${input.studySetId}`,
+        ctx.token,
+      );
     }),
+
+  /** PUT /api/folders/:id */
   edit: protectedProcedure
-    .input(EditFolderSchema)
+    .input(z.object({ id: z.string().or(z.number()), name: z.string().optional(), description: z.string().optional() }))
     .mutation(async ({ input, ctx }) => {
-      const folder = await editFolder(ctx.db, input);
-
-      if (!folder) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Server error",
-        });
-      }
-
-      return folder;
+      const { id, ...rest } = input;
+      return bePut<FolderResponse>(`/api/folders/${id}`, rest, ctx.token);
     }),
+
+  /** DELETE /api/folders/:id */
   delete: protectedProcedure
-    .input(z.object({ id: z.string() }))
+    .input(z.object({ id: z.string().or(z.number()) }))
     .mutation(async ({ input, ctx }) => {
-      return await deleteFolder(ctx.db, input.id);
+      return beDelete(`/api/folders/${input.id}`, ctx.token);
     }),
 } satisfies TRPCRouterRecord;

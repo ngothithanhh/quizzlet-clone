@@ -52,11 +52,14 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
         String accessToken = jwtUtil.generateToken(user.getEmail());
         RefreshToken refreshToken = authService.createRefreshToken(user);
 
-        // Trả về JSON
-        response.setContentType("application/json");
-        response.getWriter().write(
-                "{ \"accessToken\": \"" + accessToken + "\", " +
-                        "\"refreshToken\": \"" + refreshToken.getToken() + "\" }"
-        );
+        // Redirect về NextJS
+        // Chú ý: Ở môi trường thật, nên lấy domain frontend từ properties (application.yaml).
+        // Tạm thời hardcode localhost:3001 vì NextJS đang chạy trên port 3001 thay vì 3000
+        String frontendUrl = "http://localhost:3001"; 
+        
+        String targetUrl = String.format("%s/api/auth/oauth-callback?accessToken=%s&refreshToken=%s", 
+                frontendUrl, accessToken, refreshToken.getToken());
+
+        response.sendRedirect(targetUrl);
     }
 }

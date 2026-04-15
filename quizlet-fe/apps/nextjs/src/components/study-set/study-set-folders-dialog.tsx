@@ -3,7 +3,7 @@
 import { useParams } from "next/navigation";
 import { Plus } from "lucide-react";
 
-import type { Session } from "@acme/auth";
+import { useAuth } from "~/contexts/auth-context";
 import { Button } from "@acme/ui/button";
 import {
   Dialog,
@@ -20,14 +20,11 @@ import { useFolderDialogContext } from "~/contexts/folder-dialog-context";
 import { api } from "~/trpc/react";
 import StudySetFolderCard from "./study-set-folder-card";
 
-interface StudySetFoldersDialogProps {
-  session: Session;
-}
-
-const StudySetFoldersDialog = ({ session }: StudySetFoldersDialogProps) => {
+const StudySetFoldersDialog = () => {
+  const { user } = useAuth();
   const { id }: { id: string } = useParams();
   const [folders] = api.folder.allByUser.useSuspenseQuery({
-    userId: session.user.id,
+    userId: user?.id?.toString() ?? "",
   });
   const [studySet] = api.studySet.byId.useSuspenseQuery({ id });
   const [, dispatch] = useFolderDialogContext();

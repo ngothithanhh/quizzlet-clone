@@ -2,7 +2,6 @@
 
 import { useRouter } from "next/navigation";
 
-import type { Session } from "@acme/auth";
 import { Button } from "@acme/ui/button";
 import {
   DropdownMenu,
@@ -11,36 +10,26 @@ import {
   DropdownMenuTrigger,
 } from "@acme/ui/dropdown-menu";
 
+import { useAuth } from "~/contexts/auth-context";
 import { useFolderDialogContext } from "~/contexts/folder-dialog-context";
 import { useSignInDialogContext } from "~/contexts/sign-in-dialog-context";
 
-const CreateOptionsDropdown = ({ session }: { session: Session | null }) => {
+const CreateOptionsDropdown = () => {
+  const { isLoggedIn } = useAuth();
   const [, dispatch] = useFolderDialogContext();
   const { onOpenChange } = useSignInDialogContext();
   const router = useRouter();
 
-  const openFolderDialog = () => {
-    dispatch({ type: "open" });
-  };
-
-  const openSignInDialog = () => {
-    onOpenChange(true);
-  };
+  const openSignInDialog = () => onOpenChange(true);
 
   const onFolderClick = () => {
-    if (session) {
-      openFolderDialog();
-    } else {
-      openSignInDialog();
-    }
+    if (isLoggedIn) dispatch({ type: "open" });
+    else openSignInDialog();
   };
 
   const onStudySetClick = () => {
-    if (session) {
-      router.push("/create-set");
-    } else {
-      openSignInDialog();
-    }
+    if (isLoggedIn) router.push("/create-set");
+    else openSignInDialog();
   };
 
   return (
@@ -51,9 +40,7 @@ const CreateOptionsDropdown = ({ session }: { session: Session | null }) => {
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start">
           <DropdownMenuItem onClick={onFolderClick}>Folder</DropdownMenuItem>
-          <DropdownMenuItem onClick={onStudySetClick}>
-            Study set
-          </DropdownMenuItem>
+          <DropdownMenuItem onClick={onStudySetClick}>Study set</DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     </div>

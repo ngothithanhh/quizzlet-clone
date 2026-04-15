@@ -2,8 +2,7 @@ package org.api.quizzz.service.impl;
 
 import lombok.RequiredArgsConstructor;
 import org.api.quizzz.dto.request.StudySetRequest;
-import org.api.quizzz.dto.response.FlashcardResponse;
-import org.api.quizzz.dto.response.StudySetResponse;
+import org.api.quizzz.dto.response.*;
 import org.api.quizzz.entity.StudySet;
 import org.api.quizzz.entity.User;
 import org.api.quizzz.repository.FlashcardRepository;
@@ -134,5 +133,100 @@ public class StudySetServiceImpl implements StudySetService {
         StudySet studySet = studySetRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("StudySet not found with ID: " + id));
         studySetRepository.delete(studySet);
+    }
+
+    @Override
+    public List<MatchCardResponse> getMatchCards(Long id) {
+        var raw = flashcardRepository.findByStudySetIdOrderByPositionAsc(id);
+        List<org.api.quizzz.entity.Flashcard> subset = raw.stream().limit(4).collect(Collectors.toList());
+        
+        List<MatchCardResponse> result = new java.util.ArrayList<>();
+        for (var fc : subset) {
+            result.add(MatchCardResponse.builder().flashcardId(fc.getId()).content(fc.getTerm()).build());
+            result.add(MatchCardResponse.builder().flashcardId(fc.getId()).content(fc.getDefinition()).build());
+        }
+        
+        java.util.Collections.shuffle(result);
+        return result;
+    }
+
+    private List<LearnCardResponse> generateMultipleChoiceCards(List<org.api.quizzz.entity.Flashcard> subset, List<org.api.quizzz.entity.Flashcard> pool) {
+        List<LearnCardResponse> result = new java.util.ArrayList<>();
+        for (var card : subset) {
+            List<String> falseAnswers = pool.stream()
+                .filter(c -> !c.getId().equals(card.getId()))
+                .map(org.api.quizzz.entity.Flashcard::getDefinition)
+                .collect(Collectors.toList());
+            java.util.Collections.shuffle(falseAnswers);
+            List<String> answers = new java.util.ArrayList<>(falseAnswers.subList(0, Math.min(3, falseAnswers.size())));
+            answers.add(card.getDefinition());
+            java.util.Collections.shuffle(answers);
+            
+            result.add(LearnCardResponse.builder()
+                .id(card.getId())
+                .term(card.getTerm())
+                .definition(card.getDefinition())
+                .position(card.getPosition())
+                .studySetId(card.getStudySet().getId())
+                .answers(answers)
+                .build());
+        }
+        return result;
+    }
+
+    @Override
+    public List<LearnCardResponse> getLearnCards(Long id) {
+        var raw = flashcardRepository.findByStudySetIdOrderByPositionAsc(id);
+        return generateMultipleChoiceCards(raw, raw);
+    }
+
+    @Override
+    public TestCardsResponse getTestCards(Long id) {
+        var raw = flashcardRepository.findByStudySetIdOrderByPositionAsc(id);
+        if (raw.isEmpty()) {
+            return TestCardsResponse.builder()
+                .trueOrFalse(List.of())
+                .written(List.of())
+                .multipleChoice(List.of())
+                .build();
+        }
+
+        List<org.api.quizzz.entity.Flashcard> copy = new java.util.ArrayList<>(raw);
+        java.util.Collections.shuffle(copy);
+
+        int tenPercent = (int) (0.1 * raw.size());
+        int count = Math.max(tenPercent, 1);
+        
+        List<org.api.quizzz.entity.Flashcard> mcInitial = new java.util.ArrayList<>();
+        for (int i=0; i<count && !copy.isEmpty(); i++) mcInitial.add(copy.remove(0));
+        
+        List<LearnCardResponse> multipleChoice = generateMultipleChoiceCards(mcInitial, raw);
+        
+        List<FlashcardResponse> written = new java.util.ArrayList<>();
+        for (int i=0; i<count && !copy.isEmpty(); i++) written.add(toFlashcardResponse(copy.remove(0)));
+        
+        List<TrueFalseCardResponse> trueOrFalse = new java.util.ArrayList<>();
+        java.util.Random rand = new java.util.Random();
+        for (var card : copy) {
+            List<String> falseAnswers = raw.stream()
+                .filter(c -> !c.getId().equals(card.getId()))
+                .map(org.api.quizzz.entity.Flashcard::getDefinition)
+                .collect(Collectors.toList());
+            String falseAnswer = falseAnswers.isEmpty() ? card.getDefinition() : falseAnswers.get(rand.nextInt(falseAnswers.size()));
+            String answer = rand.nextBoolean() ? falseAnswer : card.getDefinition();
+            
+            trueOrFalse.add(TrueFalseCardResponse.builder()
+                .id(card.getId())
+                .term(card.getTerm())
+                .definition(card.getDefinition())
+                .answer(answer)
+                .build());
+        }
+        
+        return TestCardsResponse.builder()
+            .multipleChoice(multipleChoice)
+            .written(written)
+            .trueOrFalse(trueOrFalse)
+            .build();
     }
 }

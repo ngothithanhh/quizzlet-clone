@@ -3,7 +3,7 @@
 import { useParams, useRouter } from "next/navigation";
 import { RotateCcw, Undo2 } from "lucide-react";
 
-import type { Session } from "@acme/auth";
+
 import { Progress } from "@acme/ui/progress";
 import { Separator } from "@acme/ui/separator";
 
@@ -12,7 +12,7 @@ import FlashcardCard from "../shared/flashcard-card";
 import GameResult from "../shared/game-result";
 import MultipleChoiceCard from "../shared/multiple-choice-card";
 
-const LearnMode = ({ session }: { session: Session | null }) => {
+const LearnMode = () => {
   const { id }: { id: string } = useParams();
 
   const router = useRouter();
@@ -72,7 +72,6 @@ const LearnMode = ({ session }: { session: Session | null }) => {
                 <FlashcardCard
                   key={index}
                   flashcard={flashcard}
-                  session={session}
                 />
               ))}
             </div>

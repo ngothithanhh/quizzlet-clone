@@ -1,7 +1,7 @@
+"use client";
+
 import Link from "next/link";
 
-import type { Session } from "@acme/auth";
-import { signOut } from "@acme/auth";
 import { Avatar, AvatarFallback, AvatarImage } from "@acme/ui/avatar";
 import {
   DropdownMenu,
@@ -12,36 +12,37 @@ import {
   DropdownMenuTrigger,
 } from "@acme/ui/dropdown-menu";
 
-const UserDropdown = ({ user }: { user: Session["user"] }) => {
-  const { id, image, name, email } = user;
+import { useAuth } from "~/contexts/auth-context";
+
+const UserDropdown = () => {
+  const { user, logout } = useAuth();
+  if (!user) return null;
+
+  const displayName = user.username ?? user.name ?? user.email;
+  const image = user.image ?? user.avatarUrl;
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger className="outline-none">
-        <div className="flex items-center gap-2 cursor-pointer">
+        <div className="flex cursor-pointer items-center gap-2">
           <Avatar className="h-8 w-8">
             {image && (
-              <AvatarImage
-                src={image}
-                alt={name ?? "user avatar"}
-                width={32}
-                height={32}
-              />
+              <AvatarImage src={image} alt={displayName} width={32} height={32} />
             )}
-            <AvatarFallback>{name?.at(0) ?? "U"}</AvatarFallback>
+            <AvatarFallback>{displayName?.at(0) ?? "U"}</AvatarFallback>
           </Avatar>
-          <span className="hidden sm:inline text-sm font-medium truncate max-w-[120px]">
-            {name || email}
+          <span className="hidden max-w-[120px] truncate text-sm font-medium sm:inline">
+            {displayName}
           </span>
         </div>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuLabel className="flex flex-col gap-1">
-          <span className="font-semibold">{name || "User"}</span>
-          <span className="text-xs text-gray-500">{email}</span>
+          <span className="font-semibold">{displayName}</span>
+          <span className="text-xs text-gray-500">{user.email}</span>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <Link href={`/users/${id}`}>
+        <Link href={`/users/${user.id}`}>
           <DropdownMenuItem>Profile</DropdownMenuItem>
         </Link>
         <Link href="/settings">
@@ -50,20 +51,12 @@ const UserDropdown = ({ user }: { user: Session["user"] }) => {
         <Link href="/settings#dark-mode">
           <DropdownMenuItem>Dark mode</DropdownMenuItem>
         </Link>
-        <form>
-          <DropdownMenuItem asChild>
-            <button
-              className="w-full"
-              formAction={async () => {
-                "use server";
-                await signOut();
-              }}
-            >
-              Sign out
-            </button>
-          </DropdownMenuItem>
-          <DropdownMenuItem asChild></DropdownMenuItem>
-        </form>
+        <DropdownMenuItem
+          className="cursor-pointer"
+          onClick={() => void logout()}
+        >
+          Sign out
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

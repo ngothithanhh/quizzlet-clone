@@ -2,12 +2,13 @@
 
 import { useParams } from "next/navigation";
 
-import type { Session } from "@acme/auth";
+import { useAuth } from "~/contexts/auth-context";
 
 import { api } from "~/trpc/react";
 import FlashcardCard from "../shared/flashcard-card";
 
-const StudySetFlashcards = ({ session }: { session: Session | null }) => {
+const StudySetFlashcards = () => {
+  const { user } = useAuth();
   const { id }: { id: string } = useParams();
   const [{ flashcards, userId }] = api.studySet.byId.useSuspenseQuery({ id });
 
@@ -19,10 +20,9 @@ const StudySetFlashcards = ({ session }: { session: Session | null }) => {
       <div className="flex flex-col gap-3">
         {flashcards.map((flashcard, index) => (
           <FlashcardCard
-            editable={userId === session?.user.id}
+            editable={userId === user?.id}
             key={index}
             flashcard={flashcard}
-            session={session}
           />
         ))}
       </div>

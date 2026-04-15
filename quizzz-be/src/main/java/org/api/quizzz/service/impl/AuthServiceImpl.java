@@ -1,7 +1,7 @@
 package org.api.quizzz.service.impl;
 
 import lombok.RequiredArgsConstructor;
-import org.api.quizzz.entity.EmailOtp;
+import org.api.quizzz.dto.response.LoginResponse;
 import org.api.quizzz.entity.RefreshToken;
 import org.api.quizzz.entity.User;
 import org.api.quizzz.enums.OtpStatus;
@@ -12,6 +12,7 @@ import org.api.quizzz.repository.UserRepository;
 import org.api.quizzz.security.jwt.JwtUtil;
 import org.api.quizzz.service.AuthService;
 import org.api.quizzz.service.EmailOtpService;
+import org.api.quizzz.service.EmailService;
 import org.api.quizzz.service.EmailService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -72,6 +73,29 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    public LoginResponse loginWithProfile(String email, String password){
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Email hoặc mật khẩu không đúng"));
+
+        if (!passwordEncoder.matches(password, user.getPassword())) {
+            throw new RuntimeException("Email hoặc mật khẩu không đúng");
+        }
+
+        String accessToken = jwtUtil.generateToken(user.getEmail());
+        RefreshToken refreshToken = createRefreshToken(user);
+
+        return LoginResponse.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .avatarUrl(user.getAvatarUrl())
+                .isVerified(user.getIsVerified())
+                .accessToken(accessToken)
+                .refreshToken(refreshToken.getToken())
+                .build();
+    }
+
+    @Override
     public RefreshToken createRefreshToken(User user){
         RefreshToken token = RefreshToken.builder()
                 .user(user)
@@ -96,11 +120,22 @@ public class AuthServiceImpl implements AuthService {
 
         return jwtUtil.generateToken(refreshToken.getUser().getEmail());
     }
+
+    @Override
+    public void logout(String refreshTokenStr){
+        RefreshToken refreshToken = refreshTokenRepository
+                .findByToken(refreshTokenStr)
+                .orElseThrow(() -> new RuntimeException("Refresh token không hợp lệ"));
+
+        refreshToken.setIsRevoked(true);
+        refreshTokenRepository.save(refreshToken);
+    }
     @Override
     public void sendResetPasswordOtp(String email){
-        User user = userRepository.findByEmail(email).orElseThrow(()-> new RuntimeException("Email không tồn tại"));
-
-        emailOtpService.createAndSendOtp(email,OtpType.FORGOT_PASSWORD);
+        if (userRepository.findByEmail(email).isEmpty()) {
+            throw new RuntimeException("Email không tồn tại");
+        }
+        emailOtpService.createAndSendOtp(email, OtpType.FORGOT_PASSWORD);
     }
 
     @Override

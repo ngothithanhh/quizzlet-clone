@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import Image from "next/image";
 import { User } from "lucide-react";
 
-import type { Session } from "@acme/auth";
+import { useAuth } from "~/contexts/auth-context";
 import { Avatar, AvatarFallback, AvatarImage } from "@acme/ui/avatar";
 import { Card, CardContent } from "@acme/ui/card";
 import Cropper from "@acme/ui/cropper";
@@ -22,9 +22,10 @@ const profilePictures = [
   "rabbit.jpg",
 ];
 
-const EditProfilePicture = ({ user }: { user: Session["user"] }) => {
+const EditProfilePicture = () => {
+  const { user } = useAuth();
   const [image, setImage] = useState<string | undefined>(
-    user.image ?? undefined,
+    user?.image ?? user?.avatarUrl ?? undefined,
   );
   const { mutate } = api.user.update.useMutation({
     onSuccess(data) {

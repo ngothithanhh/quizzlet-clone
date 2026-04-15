@@ -3,7 +3,7 @@
 import { useParams, useRouter } from "next/navigation";
 import { GraduationCap, RotateCcw, Undo2 } from "lucide-react";
 
-import type { Session } from "@acme/auth";
+
 import { Progress } from "@acme/ui/progress";
 
 import { useFlashcardsModeContext } from "~/contexts/flashcards-mode-context";
@@ -15,11 +15,10 @@ import MessageCard from "./message-card";
 export type FlashcardAnimation = "left" | "right" | "know" | "learning" | null;
 
 interface FlashcardsGameProps {
-  session: Session | null;
   fullscreen?: boolean;
 }
 
-const FlashcardsGame = ({ fullscreen, session }: FlashcardsGameProps) => {
+const FlashcardsGame = ({ fullscreen }: FlashcardsGameProps) => {
   const {
     currentCard,
     count,
@@ -84,7 +83,7 @@ const FlashcardsGame = ({ fullscreen, session }: FlashcardsGameProps) => {
     <>
       <div className="relative flex [perspective:1000px]">
         {sorting && <MessageCard />}
-        <FlipCard fullscreen={fullscreen} session={session} />
+        <FlipCard fullscreen={fullscreen} />
       </div>
 
       <FlashcardsGameButtons fullscreen={fullscreen} />

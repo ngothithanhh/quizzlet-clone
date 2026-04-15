@@ -6,17 +6,17 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import type { RouterOutputs } from "@acme/api";
-import type { Session } from "@acme/auth";
+import { useAuth } from "~/contexts/auth-context";
 import { Avatar, AvatarFallback, AvatarImage } from "@acme/ui/avatar";
 import { Tabs, TabsList, TabsTrigger } from "@acme/ui/tabs";
 
 interface ProfileLayoutProps {
   user: RouterOutputs["user"]["byId"];
   children: ReactNode;
-  session: Session | null;
 }
 
-const ProfileLayout = ({ user, children, session }: ProfileLayoutProps) => {
+const ProfileLayout = ({ user, children }: ProfileLayoutProps) => {
+  const { user: currentUser } = useAuth();
   const pathname = usePathname();
 
   const { id, name, image } = user;
@@ -46,7 +46,7 @@ const ProfileLayout = ({ user, children, session }: ProfileLayoutProps) => {
       </div>
       <Tabs value={tabsValue} className="mb-8">
         <TabsList className="w-full justify-start">
-          {session?.user.id === user.id && (
+          {currentUser?.id === user.id && (
             <Link href={`/users/${id}`}>
               <TabsTrigger value="overview">Overview</TabsTrigger>
             </Link>

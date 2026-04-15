@@ -4,6 +4,9 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.api.quizzz.dto.request.StudySetRequest;
 import org.api.quizzz.dto.response.StudySetResponse;
+import org.api.quizzz.dto.response.MatchCardResponse;
+import org.api.quizzz.dto.response.LearnCardResponse;
+import org.api.quizzz.dto.response.TestCardsResponse;
 import org.api.quizzz.service.StudySetService;
 import org.api.quizzz.utils.SecurityUtils;
 import org.springframework.http.HttpStatus;
@@ -79,5 +82,32 @@ public class StudySetController {
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         studySetService.deleteStudySet(id);
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Lấy thẻ chơi Match (ghép đôi)
+     * GET /api/studysets/{id}/match
+     */
+    @GetMapping("/{id}/match")
+    public ResponseEntity<List<MatchCardResponse>> getMatchCards(@PathVariable Long id) {
+        return ResponseEntity.ok(studySetService.getMatchCards(id));
+    }
+
+    /**
+     * Lấy thẻ chơi Learn (trắc nghiệm)
+     * GET /api/studysets/{id}/learn
+     */
+    @GetMapping("/{id}/learn")
+    public ResponseEntity<List<LearnCardResponse>> getLearnCards(@PathVariable Long id) {
+        return ResponseEntity.ok(studySetService.getLearnCards(id));
+    }
+
+    /**
+     * Lấy thẻ Test (tổng hợp)
+     * GET /api/studysets/{id}/test
+     */
+    @GetMapping("/{id}/test")
+    public ResponseEntity<TestCardsResponse> getTestCards(@PathVariable Long id) {
+        return ResponseEntity.ok(studySetService.getTestCards(id));
     }
 }

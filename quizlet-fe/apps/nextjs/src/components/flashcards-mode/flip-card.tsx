@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 
-import type { Session } from "@acme/auth";
+
 import { cn } from "@acme/ui";
 
 import { useFlashcardsModeContext } from "~/contexts/flashcards-mode-context";
@@ -11,10 +11,9 @@ import FlipCardContent from "./flip-card-content";
 
 interface FlipCardProps {
   fullscreen?: boolean;
-  session: Session | null;
 }
 
-const FlipCard = ({ fullscreen, session }: FlipCardProps) => {
+const FlipCard = ({ fullscreen }: FlipCardProps) => {
   const { currentCard, cardRef } = useFlashcardsModeContext();
 
   const [animation, setAnimation] = useState<
@@ -55,8 +54,8 @@ const FlipCard = ({ fullscreen, session }: FlipCardProps) => {
         animate={animation}
         className="relative h-full w-full cursor-pointer [transform-style:preserve-3d]"
       >
-        <FlipCardContent flashcard={currentCard} session={session} />
-        <FlipCardContent flashcard={currentCard} session={session} back />
+        <FlipCardContent flashcard={currentCard} />
+        <FlipCardContent flashcard={currentCard} back />
       </motion.div>
     </div>
   );

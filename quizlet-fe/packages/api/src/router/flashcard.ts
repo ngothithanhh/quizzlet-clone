@@ -1,24 +1,25 @@
 import type { TRPCRouterRecord } from "@trpc/server";
-import { TRPCError } from "@trpc/server";
+import { z } from "zod";
 
-import { editFlashcard } from "@acme/db/mutations";
 import { EditFlashcardSchema } from "@acme/validators";
 
+import { bePut } from "../lib/beClient";
 import { protectedProcedure } from "../trpc";
 
+interface FlashcardResponse {
+  id: number;
+  term: string;
+  definition: string;
+  position: number;
+  studySetId: number;
+}
+
 export const flashcardRouter = {
+  /** PUT /api/flashcards/:id */
   edit: protectedProcedure
     .input(EditFlashcardSchema)
     .mutation(async ({ input, ctx }) => {
-      const flashcard = await editFlashcard(ctx.db, input);
-
-      if (!flashcard) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Could not update flashcard",
-        });
-      }
-
-      return flashcard;
+      const { id, ...rest } = input;
+      return bePut<FlashcardResponse>(`/api/flashcards/${id}`, rest, ctx.token);
     }),
 } satisfies TRPCRouterRecord;

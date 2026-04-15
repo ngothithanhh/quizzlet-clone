@@ -1,12 +1,16 @@
 import { CircleAlert, X } from "lucide-react";
 
-import type { Session } from "@acme/auth";
+import { useAuth } from "~/contexts/auth-context";
 import { Alert, AlertDescription, AlertTitle } from "@acme/ui/alert";
 import { Card, CardContent, CardFooter, CardHeader } from "@acme/ui/card";
 
 import DeleteAccountDialog from "./delete-account-dialog";
 
-const DeleteAccount = ({ user }: { user: Session["user"] }) => {
+const DeleteAccount = () => {
+  const { user } = useAuth();
+  
+  if (!user) return null;
+
   return (
     <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:gap-8">
       <div className="flex items-center gap-2 lg:basis-48 lg:flex-col lg:justify-center">
@@ -16,7 +20,7 @@ const DeleteAccount = ({ user }: { user: Session["user"] }) => {
       <Card className="flex-1">
         <CardHeader>
           <span className="text-xl font-semibold">
-            Permanently delete {user.name}
+            Permanently delete {user.username ?? user.name ?? user.email}
           </span>
         </CardHeader>
         <CardContent>

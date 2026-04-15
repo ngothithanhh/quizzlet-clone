@@ -2,10 +2,8 @@ import { createEnv } from "@t3-oss/env-nextjs";
 import { vercel } from "@t3-oss/env-nextjs/presets-zod";
 import { z } from "zod";
 
-import { env as authEnv } from "@acme/auth/env";
-
 export const env = createEnv({
-  extends: [authEnv, vercel()],
+  extends: [vercel()],
   shared: {
     NODE_ENV: z
       .enum(["development", "production", "test"])
@@ -16,7 +14,7 @@ export const env = createEnv({
    * This way you can ensure the app isn't built with invalid env vars.
    */
   server: {
-    POSTGRES_URL: z.string().url(),
+    // DATABASE_URL đã xóa — FE gọi BE REST API, không cần DB trực tiếp
   },
 
   /**
@@ -25,10 +23,10 @@ export const env = createEnv({
    */
   client: {
     // NEXT_PUBLIC_CLIENTVAR: z.string(),
-    NEXT_PUBLIC_S3_REGION: z.string(),
-    NEXT_PUBLIC_S3_ACCESS_KEY: z.string(),
-    NEXT_PUBLIC_S3_SECRET_KEY: z.string(),
-    NEXT_PUBLIC_S3_BUCKET_NAME: z.string(),
+    NEXT_PUBLIC_S3_REGION: z.string().optional(),
+    NEXT_PUBLIC_S3_ACCESS_KEY: z.string().optional(),
+    NEXT_PUBLIC_S3_SECRET_KEY: z.string().optional(),
+    NEXT_PUBLIC_S3_BUCKET_NAME: z.string().optional(),
   },
   /**
    * Destructure all variables from `process.env` to make sure they aren't tree-shaken away.

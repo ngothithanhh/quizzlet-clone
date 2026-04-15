@@ -22,38 +22,30 @@ export async function POST(request: NextRequest) {
     });
 
     if (!user) {
-      const [newUser] = await db
-        .insert(User)
-        .values({
-          email,
-          name: name || email.split("@")[0],
-          image: image || null,
-          emailVerified: new Date(),
-        })
-        .returning();
+      // MySQL không hỗ trợ .returning() — insert rồi query lại
+      const id = crypto.randomUUID();
+      await db.insert(User).values({
+        id,
+        email,
+        name: name || email.split("@")[0],
+        image: image || null,
+        emailVerified: new Date(),
+      });
 
-      user = newUser;
+      user = await db.query.User.findFirst({ where: eq(User.id, id) });
     } else {
-      // Update existing user if name or image provided
-      const updateData: any = {};
-      if (name && user.name !== name) {
-        updateData.name = name;
-      }
-      if (image && user.image !== image) {
-        updateData.image = image;
-      }
+      const updateData: Record<string, unknown> = {};
+      if (name && user.name !== name) updateData.name = name;
+      if (image && user.image !== image) updateData.image = image;
 
       if (Object.keys(updateData).length > 0) {
-        await db
-          .update(User)
-          .set(updateData)
-          .where(eq(User.id, user.id));
-        
-        // Refresh user data
-        user = (await db.query.User.findFirst({
-          where: eq(User.id, user.id),
-        }))!;
+        await db.update(User).set(updateData).where(eq(User.id, user.id));
+        user = await db.query.User.findFirst({ where: eq(User.id, user.id) });
       }
+    }
+
+    if (!user) {
+      return NextResponse.json({ error: "Failed to get user" }, { status: 500 });
     }
 
     // Create NextAuth session
@@ -66,7 +58,6 @@ export async function POST(request: NextRequest) {
       expires: expiresAt,
     });
 
-    // Create response with session cookie
     const response = NextResponse.json({
       success: true,
       user: {

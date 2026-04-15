@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { auth } from "@acme/auth";
 import { Button } from "@acme/ui/button";
 
 import FlashcardsGame from "~/components/flashcards-mode/flashcards-game";
@@ -21,28 +20,20 @@ interface StudySetProps {
 export async function generateMetadata({
   params: { id },
 }: StudySetProps): Promise<Metadata> {
-  const { title } = await api.studySet.byId({ id });
-
-  return {
-    title,
-  };
+  const studySet = await api.studySet.byId({ id });
+  return { title: studySet?.title ?? "Study Set" };
 }
 
 export default async function StudySet({ params: { id } }: StudySetProps) {
-  const { userId, user } = await api.studySet.byId({ id });
+  const studySet = await api.studySet.byId({ id });
   const otherStudySets = await api.studySet.other({
     studySetId: id,
-    userId: user.id,
+    userId: studySet?.userId ?? "",
   });
 
   await api.studySet.byId.prefetch({ id });
-
-  const session = await auth();
-
-  if (session) {
-    await api.folder.allByUser.prefetch({ userId: session.user.id });
-    await api.studySet.allByUser.prefetch({ userId: session.user.id });
-  }
+  await api.folder.allByUser.prefetch({ userId: undefined });
+  await api.studySet.allByUser.prefetch({ userId: undefined });
 
   return (
     <HydrateClient>
@@ -50,21 +41,19 @@ export default async function StudySet({ params: { id } }: StudySetProps) {
         <div className="m-auto max-w-3xl">
           <StudySetInfo />
           <StudyModes studySetId={id} />
-          <FlashcardsGame session={session} />
+          <FlashcardsGame />
           <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <CreatedBy user={user} />
-            <StudySetCTA session={session} userId={userId} id={id} />
+            <CreatedBy user={studySet?.user} />
+            <StudySetCTA userId={studySet?.userId} id={id} />
           </div>
-          <StudySetFlashcards session={session} />
-          {userId === session?.user.id && (
-            <Link href={`/study-sets/${id}/edit`}>
-              <Button size="lg" className="m-auto mb-8 block">
-                Add or Remove Terms
-              </Button>
-            </Link>
-          )}
-          {otherStudySets.length > 0 && (
-            <OtherStudySets studySets={otherStudySets} />
+          <StudySetFlashcards />
+          <Link href={`/study-sets/${id}/edit`}>
+            <Button size="lg" className="m-auto mb-8 block">
+              Add or Remove Terms
+            </Button>
+          </Link>
+          {(otherStudySets?.length ?? 0) > 0 && (
+            <OtherStudySets studySets={otherStudySets ?? []} />
           )}
         </div>
       </FlashcardsModeProvider>

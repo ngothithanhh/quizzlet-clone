@@ -1,28 +1,21 @@
 import type { TRPCRouterRecord } from "@trpc/server";
 import { z } from "zod";
 
-import {
-  createStarredFlashcard,
-  deleteStarredFlashcard,
-} from "@acme/db/mutations";
-
+import { beDelete, bePost } from "../lib/beClient";
 import { protectedProcedure } from "../trpc";
 
 export const starredFlashcardRouter = {
+  /** POST /api/favorites/:studySetId */
   create: protectedProcedure
     .input(z.object({ flashcardId: z.number() }))
     .mutation(async ({ input, ctx }) => {
-      return await createStarredFlashcard(ctx.db, {
-        flashcardId: input.flashcardId,
-        userId: ctx.session.user.id,
-      });
+      return bePost<void>(`/api/favorites/${input.flashcardId}`, undefined, ctx.token);
     }),
+
+  /** DELETE /api/favorites/:studySetId */
   delete: protectedProcedure
     .input(z.object({ flashcardId: z.number() }))
     .mutation(async ({ input, ctx }) => {
-      return await deleteStarredFlashcard(ctx.db, {
-        flashcardId: input.flashcardId,
-        userId: ctx.session.user.id,
-      });
+      return beDelete(`/api/favorites/${input.flashcardId}`, ctx.token);
     }),
 } satisfies TRPCRouterRecord;

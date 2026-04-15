@@ -36,9 +36,19 @@ public class SecurityConfig {
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .authorizeHttpRequests(auth -> auth
+                        // Auth endpoints - public
                         .requestMatchers("/auth/**", "/api/auth/**", "/oauth2/**").permitAll()
+                        // Swagger - public
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                        // CORS preflight
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        // Public GET endpoints - không cần đăng nhập
+                        .requestMatchers(HttpMethod.GET, "/api/studysets/me").authenticated() // Yêu cầu auth cho /me
+                        .requestMatchers(HttpMethod.GET, "/api/studysets").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/studysets/{id}").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/studysets/{id}/flashcards").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/flashcards/**").permitAll()
+                        // Tất cả endpoint còn lại yêu cầu auth
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(ex -> ex
@@ -48,7 +58,7 @@ public class SecurityConfig {
                             res.getWriter().write("{\"error\": \"Unauthorized\"}");
                         })
                 )
-                .oauth2Login(oauth ->oauth.successHandler(oAuth2SuccessHandler))
+                .oauth2Login(oauth -> oauth.successHandler(oAuth2SuccessHandler))
                 .addFilterBefore(
                         jwtAuthenticationFilter,
                         UsernamePasswordAuthenticationFilter.class

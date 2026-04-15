@@ -2,7 +2,7 @@
 
 import { Edit } from "lucide-react";
 
-import type { Session } from "@acme/auth";
+import { useAuth } from "~/contexts/auth-context";
 import { Button } from "@acme/ui/button";
 
 import { api } from "~/trpc/react";
@@ -12,13 +12,13 @@ import FolderStudySetsDialog from "./folder-study-sets-dialog";
 
 interface FolderCTAProps {
   slug: string;
-  session: Session | null;
 }
 
-const FolderCTA = ({ slug, session }: FolderCTAProps) => {
+const FolderCTA = ({ slug }: FolderCTAProps) => {
+  const { user } = useAuth();
   const [data] = api.folder.bySlug.useSuspenseQuery({ slug });
 
-  if (data.userId !== session?.user.id) {
+  if (data.userId !== user?.id) {
     return null;
   }
 
@@ -36,7 +36,7 @@ const FolderCTA = ({ slug, session }: FolderCTAProps) => {
           <Edit size={16} />
         </Button>
       </FolderDialog>
-      <DeleteFolderDialog id={data.id} userId={session.user.id} />
+      <DeleteFolderDialog id={data.id} userId={user?.id?.toString() ?? ""} />
     </div>
   );
 };

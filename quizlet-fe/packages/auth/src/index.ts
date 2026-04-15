@@ -1,15 +1,16 @@
-import NextAuth from "next-auth";
+// @acme/auth đã được đơn giản hóa — NextAuth đã bị xóa.
+// Auth được xử lý bởi Spring Boot BE với JWT.
 
-import { authConfig } from "./config";
+export interface Session {
+  user: {
+    id: string;
+    email: string;
+    username: string;
+    name?: string;
+    image?: string;
+    avatarUrl?: string;
+  };
+  accessToken: string;
+}
 
-export type { Session } from "next-auth";
-
-const { handlers, auth, signIn, signOut } = NextAuth(authConfig);
-
-export { handlers, auth, signIn, signOut };
-
-export {
-  invalidateSessionToken,
-  validateToken,
-  isSecureContext,
-} from "./config";
+export type { Session as NextAuthSession };

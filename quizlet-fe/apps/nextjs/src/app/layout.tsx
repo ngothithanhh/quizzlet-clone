@@ -10,8 +10,7 @@ import { TRPCReactProvider } from "~/trpc/react";
 
 import "~/app/globals.css";
 
-import { auth } from "@acme/auth";
-
+import { AuthProvider } from "~/contexts/auth-context";
 import CreateActivity from "~/components/layout/create-activity";
 import CreateFolderDialog from "~/components/layout/create-folder-dialog";
 import Navbar from "~/components/layout/navbar";
@@ -46,9 +45,7 @@ export const viewport: Viewport = {
   ],
 };
 
-export default async function RootLayout(props: { children: React.ReactNode }) {
-  const session = await auth();
-
+export default function RootLayout(props: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body
@@ -58,34 +55,29 @@ export default async function RootLayout(props: { children: React.ReactNode }) {
           GeistMono.variable,
         )}
       >
-        <SignInDialogProvider>
-          <LoginDialogProvider>
-            <FolderDialogProvider>
-              <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-                <TRPCReactProvider>
-                  <Navbar session={session} />
-                  <main className="container min-h-[calc(100vh-65px)] py-8">
-                    {props.children}
-                  </main>
-                  <Toaster richColors />
-                  {session ? (
-                    <>
-                      <CreateActivity />
-                      <CreateFolderDialog />
-                    </>
-                  ) : (
-                    <>
-                      <SignInDialog />
-                      <LoginDialog>
-                        <LoginFormDialog />
-                      </LoginDialog>
-                    </>
-                  )}
-                </TRPCReactProvider>
-              </ThemeProvider>
-            </FolderDialogProvider>
-          </LoginDialogProvider>
-        </SignInDialogProvider>
+        <AuthProvider>
+          <SignInDialogProvider>
+            <LoginDialogProvider>
+              <FolderDialogProvider>
+                <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+                  <TRPCReactProvider>
+                    <Navbar />
+                    <main className="container min-h-[calc(100vh-65px)] py-8">
+                      {props.children}
+                    </main>
+                    <Toaster richColors />
+                    <CreateActivity />
+                    <CreateFolderDialog />
+                    <SignInDialog />
+                    <LoginDialog>
+                      <LoginFormDialog />
+                    </LoginDialog>
+                  </TRPCReactProvider>
+                </ThemeProvider>
+              </FolderDialogProvider>
+            </LoginDialogProvider>
+          </SignInDialogProvider>
+        </AuthProvider>
       </body>
     </html>
   );

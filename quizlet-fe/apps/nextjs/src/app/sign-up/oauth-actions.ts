@@ -1,14 +1,2 @@
-"use server";
-
-import { signIn } from "@acme/auth";
-
-export async function signInWithGoogleSignUp() {
-  try {
-    await signIn("google", {
-      redirectTo: "/",
-    });
-  } catch (error) {
-    console.error("Google sign up error:", error);
-    throw error;
-  }
-}
+// OAuth actions đã bị xóa — auth được xử lý bởi BE Spring Boot
+export {};

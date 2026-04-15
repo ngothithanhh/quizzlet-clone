@@ -3,7 +3,7 @@
 import { Star } from "lucide-react";
 
 import type { RouterOutputs } from "@acme/api";
-import type { Session } from "@acme/auth";
+import { useAuth } from "~/contexts/auth-context";
 import { Button } from "@acme/ui/button";
 import { Card, CardContent } from "@acme/ui/card";
 import { Separator } from "@acme/ui/separator";
@@ -15,20 +15,19 @@ import EditFlashcardDialog from "./edit-flashcard-dialog";
 interface FlashcardCardProps {
   flashcard: RouterOutputs["studySet"]["byId"]["flashcards"][number];
   editable?: boolean;
-  session: Session | null;
 }
 
 const FlashcardCard = ({
   flashcard,
   editable,
-  session,
 }: FlashcardCardProps) => {
+  const { isLoggedIn } = useAuth();
   const { term, definition } = flashcard;
   const { toggleStar } = useStar(flashcard);
   const { onOpenChange } = useSignInDialogContext();
 
   const onStarClick = () => {
-    if (session) {
+    if (isLoggedIn) {
       toggleStar();
     } else {
       onOpenChange(true);
