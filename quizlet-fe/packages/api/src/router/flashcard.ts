@@ -7,6 +7,7 @@ import { beDelete, beGetBlob, bePost, bePut } from "../lib/beClient";
 import { protectedProcedure } from "../trpc";
 
 export interface FlashcardResponse {
+export interface FlashcardResponse {
   id: number;
   term: string;
   definition: string;
