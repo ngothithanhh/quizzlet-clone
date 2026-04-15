@@ -57,22 +57,30 @@ const StudySetForm = ({ defaultValues }: StudySetFormProps) => {
   const ref = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const utils = api.useUtils();
+  const isEditing = !!defaultValues?.id;
   const create = api.studySet.create.useMutation({
     onSuccess() {
       form.reset({});
-      toast.success(`${defaultValues ? "Saved" : "Created new"} study set`);
+      toast.success("Created new study set");
       void utils.studySet.invalidate();
-
-      const route = defaultValues
-        ? `/study-sets/${defaultValues.id}`
-        : "/latest";
-
-      router.push(route);
+      router.push("/latest");
     },
     onError(error) {
       toast.error(error.message);
     },
   });
+  const update = api.studySet.update.useMutation({
+    onSuccess(data) {
+      toast.success("Study set saved");
+      void utils.studySet.invalidate();
+      router.push(`/study-sets/${data.id}`);
+    },
+    onError(error) {
+      toast.error(error.message);
+    },
+  });
+
+  const isPending = isEditing ? update.isPending : create.isPending;
   const [isInitialRender, setIsInitialRender] = useState(true);
   const [active, setActive] = useState(0);
 
@@ -94,10 +102,11 @@ const StudySetForm = ({ defaultValues }: StudySetFormProps) => {
       position: index,
     }));
 
-    create.mutate({
-      ...values,
-      flashcards,
-    });
+    if (isEditing && defaultValues?.id) {
+      update.mutate({ ...values, flashcards, id: defaultValues.id });
+    } else {
+      create.mutate({ ...values, flashcards });
+    }
   };
 
   const addFlashcard = () => {

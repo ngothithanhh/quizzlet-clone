@@ -1,5 +1,6 @@
 import { activityRouter } from "./router/activity";
 import { authRouter } from "./router/auth";
+import { favoriteRouter } from "./router/favorite";
 import { flashcardRouter } from "./router/flashcard";
 import { folderRouter } from "./router/folder";
 import { starredFlashcardRouter } from "./router/starredFlashcard";
@@ -13,6 +14,7 @@ export const appRouter = createTRPCRouter({
   user: userRouter,
   folder: folderRouter,
   flashcard: flashcardRouter,
+  favorite: favoriteRouter,
   starredFlashcard: starredFlashcardRouter,
   activity: activityRouter,
 });

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import ChangePassword from "~/components/settings/change-password";
 import DarkMode from "~/components/settings/dark-mode";
 import DeleteAccount from "~/components/settings/delete-account";
 import EditProfilePicture from "~/components/settings/edit-profile-picture";
@@ -14,6 +15,7 @@ export default function Settings() {
     <>
       <h2 className="mb-8 text-2xl font-bold">Settings</h2>
       <EditProfilePicture />
+      <ChangePassword />
       <DarkMode />
       <DeleteAccount />
     </>

@@ -40,6 +40,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refresh = useCallback(async () => {
     try {
       const res = await fetch("/api/auth/me");
+
+      if (res.status === 401) {
+        // Token hết hạn — thử refresh trước khi logout
+        const refreshRes = await fetch("/api/auth/refresh-token", { method: "POST" });
+
+        if (refreshRes.ok) {
+          // Refresh thành công — thử lại lấy user
+          const retryRes = await fetch("/api/auth/me");
+          if (retryRes.ok) {
+            const data = await retryRes.json();
+            setUser(data.user ?? null);
+            setAccessToken(data.accessToken ?? null);
+            return;
+          }
+        }
+
+        // Refresh cũng fail → clear session
+        setUser(null);
+        setAccessToken(null);
+        return;
+      }
+
       if (res.ok) {
         const data = await res.json();
         setUser(data.user ?? null);
