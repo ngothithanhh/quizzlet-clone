@@ -4,7 +4,7 @@ import { z } from "zod";
 import { beDelete, beGet, bePut } from "../lib/beClient";
 import { protectedProcedure, publicProcedure } from "../trpc";
 
-interface UserProfileResponse {
+export interface UserProfileResponse {
   id: number;
   username: string;
   email: string;
@@ -18,6 +18,8 @@ export const userRouter = {
   byId: publicProcedure
     .input(z.object({ id: z.string().or(z.number()).optional() }))
     .query(async ({ ctx }) => {
+      // /api/users/me requires auth — return null if no token
+      if (!ctx.token) return null;
       return beGet<UserProfileResponse>("/api/users/me", ctx.token);
     }),
 

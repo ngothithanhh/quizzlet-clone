@@ -6,7 +6,7 @@ import { EditFlashcardSchema } from "@acme/validators";
 import { bePut } from "../lib/beClient";
 import { protectedProcedure } from "../trpc";
 
-interface FlashcardResponse {
+export interface FlashcardResponse {
   id: number;
   term: string;
   definition: string;

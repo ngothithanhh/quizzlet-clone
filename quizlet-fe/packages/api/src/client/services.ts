@@ -3,14 +3,7 @@
  * Wrapper functions cho từng feature
  */
 
-import {
-  apiDelete,
-  apiGet,
-  apiPost,
-  apiPut,
-  setTokens,
-  clearTokens,
-} from "./http";
+import { apiDelete, apiGet, apiPost, apiPut } from "./http";
 import { API_ENDPOINTS } from "./config";
 import type {
   LoginRequest,
@@ -51,24 +44,15 @@ export const authService = {
   },
 
   async login(data: LoginRequest) {
-    const response = await apiPost<LoginResponse>(
-      API_ENDPOINTS.AUTH.LOGIN,
-      data
-    );
-    if (response.success && response.data) {
-      setTokens(response.data.accessToken, response.data.refreshToken);
-    }
-    return response;
+    // Token được lưu vào httpOnly cookie bởi Next.js route handler
+    // Dùng AuthContext.login() thay vì gọi trực tiếp hàm này từ component
+    return apiPost<LoginResponse>(API_ENDPOINTS.AUTH.LOGIN, data);
   },
 
   async refreshToken(refreshToken: string) {
-    const response = await apiPost<{ accessToken: string }>(
+    return apiPost<{ accessToken: string }>(
       `${API_ENDPOINTS.AUTH.REFRESH}?refreshToken=${encodeURIComponent(refreshToken)}`
     );
-    if (response.success && response.data) {
-      setTokens(response.data.accessToken);
-    }
-    return response;
   },
 
   async sendForgotPasswordOtp(email: string) {
@@ -94,8 +78,9 @@ export const authService = {
     return response;
   },
 
-  logout() {
-    clearTokens();
+  async logout() {
+    // Gọi Next.js route để clear httpOnly cookie phía server
+    await fetch("/api/auth/logout", { method: "POST" });
   },
 };
 

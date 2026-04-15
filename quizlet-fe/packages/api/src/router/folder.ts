@@ -4,7 +4,7 @@ import { z } from "zod";
 import { beDelete, beGet, bePost, bePut } from "../lib/beClient";
 import { protectedProcedure, publicProcedure } from "../trpc";
 
-interface FolderResponse {
+export interface FolderResponse {
   id: number;
   name: string;
   description?: string;
@@ -14,7 +14,7 @@ interface FolderResponse {
   studySetsCount: number;
 }
 
-const mapToFrontendFolder = (beFolder: any): FolderResponse => ({
+export const mapToFrontendFolder = (beFolder: any): FolderResponse => ({
   ...beFolder,
   userId: beFolder.userId || 1, // Fallback if missing
   slug: beFolder.id ? beFolder.id.toString() : "",
@@ -26,6 +26,8 @@ export const folderRouter = {
   allByUser: publicProcedure
     .input(z.object({ userId: z.string().or(z.number()).optional() }))
     .query(async ({ ctx }) => {
+      // /api/folders requires auth — return empty if no token
+      if (!ctx.token) return [];
       const data = await beGet<any[]>("/api/folders", ctx.token);
       return (data || []).map(mapToFrontendFolder);
     }),

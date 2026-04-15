@@ -6,7 +6,7 @@ import { StudySetSchema } from "@acme/validators";
 import { beDelete, beGet, bePost, bePut } from "../lib/beClient";
 import { protectedProcedure, publicProcedure } from "../trpc";
 
-interface FlashcardResponse {
+export interface FlashcardResponse {
   id: number;
   term: string;
   definition: string;
@@ -16,7 +16,7 @@ interface FlashcardResponse {
   audioUrl?: string;
 }
 
-interface StudySetResponse {
+export interface StudySetResponse {
   id: number;
   title: string;
   description?: string;
@@ -29,7 +29,7 @@ interface StudySetResponse {
   updatedAt: string;
 }
 
-const mapToFrontendStudySet = (beSet: any): StudySetResponse => ({
+export const mapToFrontendStudySet = (beSet: any): StudySetResponse => ({
   ...beSet,
   user: {
     id: beSet.userId || 0,
@@ -58,6 +58,8 @@ export const studySetRouter = {
   allByUser: publicProcedure
     .input(z.object({ userId: z.string().or(z.number()).optional() }))
     .query(async ({ ctx }) => {
+      // /api/studysets/me requires auth — return empty if no token
+      if (!ctx.token) return [];
       const data = await beGet<any[]>("/api/studysets/me", ctx.token);
       return (data || []).map(mapToFrontendStudySet);
     }),
