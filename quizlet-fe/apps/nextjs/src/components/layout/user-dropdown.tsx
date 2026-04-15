@@ -18,21 +18,27 @@ const UserDropdown = ({ user }: { user: Session["user"] }) => {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger className="outline-none">
-        <Avatar>
-          {image && (
-            <AvatarImage
-              src={image}
-              alt={name ?? "user avatar"}
-              width={32}
-              height={32}
-            />
-          )}
-          <AvatarFallback>{name?.at(0) ?? "U"}</AvatarFallback>
-        </Avatar>
+        <div className="flex items-center gap-2 cursor-pointer">
+          <Avatar className="h-8 w-8">
+            {image && (
+              <AvatarImage
+                src={image}
+                alt={name ?? "user avatar"}
+                width={32}
+                height={32}
+              />
+            )}
+            <AvatarFallback>{name?.at(0) ?? "U"}</AvatarFallback>
+          </Avatar>
+          <span className="hidden sm:inline text-sm font-medium truncate max-w-[120px]">
+            {name || email}
+          </span>
+        </div>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuLabel className="max-w-[120px] overflow-hidden text-ellipsis">
-          {email}
+        <DropdownMenuLabel className="flex flex-col gap-1">
+          <span className="font-semibold">{name || "User"}</span>
+          <span className="text-xs text-gray-500">{email}</span>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <Link href={`/users/${id}`}>
