@@ -53,9 +53,9 @@ const TrueFalseCard = forwardRef<HTMLInputElement, TrueFalseCardProps>(
                   "border-2 peer-checked:border-blue-600 peer-checked:bg-blue-600/10",
                   {
                     "border-red-600 bg-red-600/10":
-                      answer !== definition && userAnswer === "true",
+                      definition && answer !== definition && userAnswer === "true",
                     "border-green-600 bg-green-600/10":
-                      answer === definition && userAnswer,
+                      definition && answer === definition && userAnswer,
                   },
                 )}
               >
@@ -78,9 +78,9 @@ const TrueFalseCard = forwardRef<HTMLInputElement, TrueFalseCardProps>(
                   "border-2 peer-checked:border-blue-600 peer-checked:bg-blue-600/10",
                   {
                     "border-red-600 bg-red-600/10":
-                      answer === definition && userAnswer === "false",
+                      definition && answer === definition && userAnswer === "false",
                     "border-green-600 bg-green-600/10":
-                      answer !== definition && userAnswer,
+                      definition && answer !== definition && userAnswer,
                   },
                 )}
               >
