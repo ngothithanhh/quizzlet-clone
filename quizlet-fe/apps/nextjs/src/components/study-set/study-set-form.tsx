@@ -301,7 +301,7 @@ const StudySetForm = ({ defaultValues }: StudySetFormProps) => {
                           name={`flashcards.${index}.term`}
                           render={({ field }) => (
                             <FormItem className="flex-1">
-                              <FormLabel>Term</FormLabel>
+                              <FormLabel>Thuật ngữ</FormLabel>
                               <FormControl>
                                 <div
                                   data-value={field.value}
@@ -325,7 +325,7 @@ const StudySetForm = ({ defaultValues }: StudySetFormProps) => {
                           name={`flashcards.${index}.definition`}
                           render={({ field }) => (
                             <FormItem className="flex-1">
-                              <FormLabel>Definition</FormLabel>
+                              <FormLabel>Định nghĩa</FormLabel>
                               <FormControl>
                                 <div
                                   data-value={field.value}

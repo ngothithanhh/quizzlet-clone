@@ -40,22 +40,22 @@ const StudySetFoldersDialog = () => {
           <DialogTrigger asChild>
             <Button size="icon" variant="outline">
               <Plus size={16} />
-              <span className="sr-only">Add to folder</span>
+              <span className="sr-only">Thêm vào thư mục</span>
             </Button>
           </DialogTrigger>
         </TooltipTrigger>
         <TooltipContent>
-          <p>Add to folder</p>
+          <p>Thêm vào thư mục</p>
         </TooltipContent>
       </Tooltip>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Folders</DialogTitle>
+          <DialogTitle>Thư mục</DialogTitle>
           <DialogDescription>
-            Add or remove your set from folders
+            Thêm hoặc xóa bộ Flashcard khỏi thư mục
           </DialogDescription>
         </DialogHeader>
-        <Button onClick={openFolderDialog}>Create new folder</Button>
+        <Button onClick={openFolderDialog}>Tạo thư mục mới</Button>
         {folders.length ? (
           <div className="flex flex-col gap-4">
             {folders.map((folder) => {

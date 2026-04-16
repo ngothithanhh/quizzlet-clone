@@ -23,29 +23,29 @@ const staggerContainer = {
 const features = [
   {
     icon: "📚",
-    title: "Multiple Learning Modes",
-    desc: "Flashcards, Learn mode, Memory game, and Test mode to keep your studying fresh and engaging.",
+    title: "Đa dạng cách học",
+    desc: "Flashcard, Ôn tập, Matching và Test — giúp việc học luôn mới mẻ.",
     color: "from-blue-500 to-indigo-500",
     shadow: "shadow-blue-500/20"
   },
   {
     icon: "🎯",
-    title: "Smart Spaced Repetition",
-    desc: "Optimize your learning with scientifically-backed spaced repetition algorithm.",
+    title: "Lặp lại thông minh",
+    desc: "Tối ưu ghi nhớ bằng thuật toán lặp lại ngắt quãng theo khoa học.",
     color: "from-purple-500 to-pink-500",
     shadow: "shadow-purple-500/20"
   },
   {
     icon: "👥",
-    title: "Collaboration",
-    desc: "Create study groups, share study sets, and learn together with friends.",
+    title: "Học cùng bạn bè",
+    desc: "Tạo nhóm học, chia sẻ bộ Flashcard và cùng nhau ôn tập.",
     color: "from-pink-500 to-rose-500",
     shadow: "shadow-pink-500/20"
   },
   {
     icon: "📊",
-    title: "Track Progress",
-    desc: "Monitor your learning progress with detailed statistics and insights.",
+    title: "Theo dõi tiến độ",
+    desc: "Xem thống kê chi tiết để biết mình đã học được bao nhiêu.",
     color: "from-cyan-500 to-blue-500",
     shadow: "shadow-cyan-500/20"
   }
@@ -86,15 +86,15 @@ export default function Hero() {
 
             {/* Main Heading */}
             <motion.h1 variants={fadeIn} className="mb-6 text-5xl sm:text-6xl md:text-7xl font-extrabold tracking-tight text-white leading-[1.1]">
-              Learn Anything,<br/>
+              Học mọi thứ,<br/>
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 drop-shadow-sm">
-                Memorize Everything
+                Nhớ tất cả
               </span>
             </motion.h1>
 
             {/* Subheading */}
             <motion.p variants={fadeIn} className="mb-10 text-lg sm:text-xl md:text-2xl text-gray-400 max-w-2xl mx-auto font-light leading-relaxed">
-              Master any subject with interactive flashcards, dynamic learning modes, and smart spaced repetition. Join millions of students learning smarter.
+              Chinh phục mọi môn học với Flashcard tương tác, nhiều chế độ ôn tập và thuật toán ghi nhớ thông minh.
             </motion.p>
 
             {/* Premium CTA Buttons */}
@@ -104,7 +104,7 @@ export default function Hero() {
                 className="bg-white text-black hover:bg-gray-100 font-semibold px-10 py-6 text-lg rounded-full shadow-[0_0_40px_rgba(255,255,255,0.3)] transition-all hover:scale-105"
                 asChild
               >
-                <Link href="/latest">Start Learning</Link>
+                <Link href="/latest">Bắt đầu học</Link>
               </Button>
               <Button
                 size="lg"
@@ -112,7 +112,7 @@ export default function Hero() {
                 className="border-white/20 text-white hover:bg-white/10 font-semibold px-10 py-6 text-lg rounded-full backdrop-blur-md transition-all hover:scale-105"
                 asChild
               >
-                <Link href="/create-set">Create Study Set</Link>
+                <Link href="/create-set">Tạo bộ Flashcard</Link>
               </Button>
             </motion.div>
 
@@ -120,9 +120,9 @@ export default function Hero() {
             <motion.div variants={fadeIn} className="inline-grid grid-cols-1 sm:grid-cols-3 gap-8 md:gap-16 relative">
               <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-pink-500/10 blur-3xl -z-10 rounded-full" />
               {[
-                { value: "10M+", label: "Active Learners" },
-                { value: "50M+", label: "Study Sets" },
-                { value: "4.8★", label: "User Rating" }
+                { value: "10M+", label: "Người học" },
+                { value: "50M+", label: "Bộ Flashcard" },
+                { value: "4.8★", label: "Đánh giá" }
               ].map((stat, i) => (
                 <div key={i} className="flex flex-col items-center p-6 rounded-3xl bg-white/5 border border-white/5 backdrop-blur-md hover:bg-white/10 transition-colors">
                   <div className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white to-gray-400 mb-2">{stat.value}</div>
@@ -152,10 +152,10 @@ export default function Hero() {
             className="text-center max-w-3xl mx-auto mb-20"
           >
             <h2 className="text-4xl md:text-5xl font-bold mb-6 text-foreground tracking-tight">
-              Why Choose <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-purple-500">Quizzlet?</span>
+              Tại sao chọn <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-purple-500">Quizzlet?</span>
             </h2>
             <p className="text-lg text-muted-foreground">
-              Experience the next generation of digital learning platforms, built for maximum retention and engagement.
+              Nền tảng học tập thế hệ mới — giúp ghi nhớ lâu và học hiệu quả hơn.
             </p>
           </motion.div>
 

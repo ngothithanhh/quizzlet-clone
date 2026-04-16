@@ -224,7 +224,7 @@ export default function ImportExcelIntoForm({
           <div className="flex items-start gap-2 text-xs text-amber-600 bg-amber-50 dark:bg-amber-900/20 p-3 rounded-lg">
             <AlertTriangle size={13} className="flex-shrink-0 mt-0.5" />
             <span>
-              File cần có 2 cột: <strong>Term</strong> (cột A) và <strong>Definition</strong> (cột B). Dòng đầu tiên là tiêu đề, bỏ qua.
+              File cần có 2 cột: <strong>Thuật ngữ</strong> (cột A) và <strong>Định nghĩa</strong> (cột B). Dòng đầu tiên là tiêu đề, bỏ qua.
             </span>
           </div>
 
@@ -239,8 +239,8 @@ export default function ImportExcelIntoForm({
                   <thead className="sticky top-0 bg-gray-50 dark:bg-gray-800 text-gray-500">
                     <tr>
                       <th className="text-left px-3 py-2 font-medium w-8">#</th>
-                      <th className="text-left px-3 py-2 font-medium">Term</th>
-                      <th className="text-left px-3 py-2 font-medium">Definition</th>
+                      <th className="text-left px-3 py-2 font-medium">Thuật ngữ</th>
+                      <th className="text-left px-3 py-2 font-medium">Định nghĩa</th>
                     </tr>
                   </thead>
                   <tbody>

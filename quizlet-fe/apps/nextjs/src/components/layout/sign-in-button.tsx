@@ -14,9 +14,9 @@ export default function SignInButton() {
   return (
     <div className="flex items-center gap-2">
       <Button onClick={() => onLoginOpen(true)} variant="outline">
-        Log In
+        Đăng nhập
       </Button>
-      <Button onClick={() => onSignUpOpen(true)}>Sign Up</Button>
+      <Button onClick={() => onSignUpOpen(true)}>Đăng ký</Button>
     </div>
   );
 }

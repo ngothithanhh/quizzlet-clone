@@ -14,7 +14,7 @@ const PopularStudySetsGrid = () => {
 
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (!studySets || studySets.length === 0) {
-    return <Empty message="No popular study sets yet." />;
+    return <Empty message="Chưa có bộ Flashcard phổ biến nào." />;
   }
 
   return (
@@ -30,7 +30,7 @@ const PopularStudySets = () => {
   return (
     <div>
       <h2 className="mb-8 text-3xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-500 dark:from-blue-400 dark:to-indigo-300">
-        Popular Study Sets
+        Bộ Flashcard phổ biến
       </h2>
       <Suspense fallback={<StudySetSkeletonGrid />}>
         <PopularStudySetsGrid />

@@ -89,7 +89,7 @@ const StudySetOptionsDropdown = ({
           </DropdownMenuItem>
           {isOwner && (
             <DropdownMenuItem onClick={openDeleteDialog}>
-              <Trash2Icon size={16} className="mr-2" /> Delete
+              <Trash2Icon size={16} className="mr-2" /> Xóa
             </DropdownMenuItem>
           )}
         </DropdownMenuContent>

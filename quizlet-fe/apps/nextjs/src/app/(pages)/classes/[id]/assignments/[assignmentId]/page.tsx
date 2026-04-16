@@ -46,7 +46,7 @@ export default function AssignmentDetailPage() {
   const aId = Number(assignmentId);
 
   const { data: classroom } = api.classroom.byId.useQuery({ id: Number(classId) });
-  const { data: assignment, isLoading: loadingAssignment, refetch: refetchAssignment } = api.classroom.assignmentById.useQuery({ assignmentId: aId });
+  const { data: assignment, isLoading: loadingAssignment } = api.classroom.assignmentById.useQuery({ assignmentId: aId });
   const { data: myAttempts = [], isLoading: loadingAttempts, refetch: refetchAttempts } = api.classroom.myAttempts.useQuery({ assignmentId: aId });
   const isTeacher = classroom?.isCreator || classroom?.currentUserRole === "TEACHER";
 
@@ -84,8 +84,6 @@ export default function AssignmentDetailPage() {
     onSuccess: () => {
       toast.success("Nộp bài thành công!");
       void refetchAttempts();
-      // Refetch assignment to get latest allowReviewAnswers from server
-      void refetchAssignment();
     },
     onError: (err) => toast.error(err.message ?? "Nộp bài thất bại"),
   });
@@ -102,6 +100,14 @@ export default function AssignmentDetailPage() {
     }
     setMode("taking");
   };
+
+  useEffect(() => {
+    if (timeLeft === null || submitted) return;
+    if (timeLeft <= 0) { void handleSubmit(true); return; }
+    timerRef.current = setTimeout(() => setTimeLeft((t) => (t !== null ? t - 1 : null)), 1000);
+    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timeLeft, submitted, handleSubmit]);
 
   const handleAnswer = useCallback((flashcardId: number, term: string, userAnswer: string, correctAnswer: string) => {
     // Case-insensitive + trim whitespace comparison
@@ -121,36 +127,17 @@ export default function AssignmentDetailPage() {
     if (submitted) return;
     if (timerRef.current) clearTimeout(timerRef.current);
     const durationSeconds = Math.floor((Date.now() - startTime) / 1000);
-
-    // Build answer details for ALL questions (including unanswered)
-    const answerList = allCards.map((card) => {
-      const ans = answers[card.id];
-      if (ans) {
-        return { flashcardId: card.id, term: ans.term, userAnswer: ans.userAnswer, correctAnswer: ans.correctAnswer, isCorrect: ans.isCorrect };
-      }
-      // Unanswered question
-      return { flashcardId: card.id, term: card.term, userAnswer: "", correctAnswer: card.definition ?? "", isCorrect: false };
-    });
-
+    const answerList = Object.entries(answers).map(([id, a]) => ({
+      flashcardId: Number(id), term: a.term, userAnswer: a.userAnswer, correctAnswer: a.correctAnswer, isCorrect: a.isCorrect,
+    }));
     const correctAnswers = answerList.filter((a) => a.isCorrect).length;
     const totalQuestions = allCards.length;
     const score = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0;
     setSubmitted(true);
-    setSubmittedData({ score, correctAnswers, totalQuestions, allowReview: assignment?.allowReviewAnswers !== false, answerDetails: answerList });
-    // Switch to history mode so ResultView renders (instead of showing answers on quiz page)
-    setMode("history");
+    setSubmittedData({ score, correctAnswers, totalQuestions, allowReview: assignment?.allowReviewAnswers ?? true, answerDetails: answerList });
     submitMutation.mutate({ assignmentId: aId, score, correctAnswers, totalQuestions, durationSeconds, answers: answerList });
     if (autoSubmit) toast.info("Hết giờ! Bài thi đã được tự động nộp.");
-  }, [submitted, answers, allCards, aId, assignment, startTime, submitMutation]);
-
-  // Timer effect — must be AFTER handleSubmit is defined
-  useEffect(() => {
-    if (timeLeft === null || submitted) return;
-    if (timeLeft <= 0) { void handleSubmit(true); return; }
-    timerRef.current = setTimeout(() => setTimeLeft((t) => (t !== null ? t - 1 : null)), 1000);
-    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [timeLeft, submitted, handleSubmit]);
+  }, [submitted, answers, allCards.length, aId, assignment, startTime, submitMutation]);
 
   if (loadingAssignment) {
     return <div className="min-h-screen flex items-center justify-center"><Loader2 size={32} className="animate-spin text-indigo-500" /></div>;
@@ -258,11 +245,10 @@ export default function AssignmentDetailPage() {
           </div>
           <div className="flex items-center gap-3">
             {timeLeft !== null && (
-              <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-mono font-bold ${
-                timeLeft < 60 ? "bg-red-100 text-red-600 dark:bg-red-900/30 animate-pulse" :
-                timeLeft < 300 ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30" :
-                "bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30"
-              }`}>
+              <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-mono font-bold ${timeLeft < 60 ? "bg-red-100 text-red-600 dark:bg-red-900/30 animate-pulse" :
+                  timeLeft < 300 ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30" :
+                    "bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30"
+                }`}>
                 <Clock size={14} />{formatTime(timeLeft)}
               </div>
             )}
@@ -313,25 +299,21 @@ function TeacherView({ assignment, classId, submissions, loadingSubmissions, aId
 
   const updateMutation = api.classroom.updateAssignment.useMutation({
     onSuccess: () => {
-      toast.success("Đã cập nhật bài kiểm tra!");
       void utils.classroom.assignmentById.invalidate({ assignmentId: aId });
       void utils.classroom.assignments.invalidate({ classId: assignment?.classId });
       setEditOpen(false);
     },
-    onError: (err) => toast.error(err.message ?? "Cập nhật thất bại"),
   });
 
   const handleUpdate = (e: React.FormEvent) => {
     e.preventDefault();
     if (!editTitle.trim()) return;
-    const tl = editLimit ? parseInt(editLimit, 10) : null;
-    const ma = editMaxAttempts ? parseInt(editMaxAttempts, 10) : null;
     updateMutation.mutate({
       assignmentId: aId,
       title: editTitle.trim(),
       description: editDesc.trim() || undefined,
-      timeLimitMinutes: (tl && !isNaN(tl)) ? tl : null,
-      maxAttempts: (ma && !isNaN(ma)) ? ma : null,
+      timeLimitMinutes: editLimit ? parseInt(editLimit) : undefined,
+      maxAttempts: editMaxAttempts ? parseInt(editMaxAttempts) : undefined,
       allowReviewAnswers: editAllowReview,
     });
   };
@@ -425,7 +407,7 @@ function TeacherView({ assignment, classId, submissions, loadingSubmissions, aId
             {submissions.map((sub: any) => {
               const pct = sub.score ?? 0;
               let details: any[] = [];
-              try { details = sub.answersJson ? JSON.parse(sub.answersJson) : []; } catch {}
+              try { details = sub.answersJson ? JSON.parse(sub.answersJson) : []; } catch { }
               return <TeacherSubmissionRow key={sub.id} sub={sub} pct={pct} details={details} />;
             })}
           </div>
@@ -443,10 +425,9 @@ function ResultView({ submittedData, assignment, onBack, classId }: any) {
           <ArrowLeft size={15} /> Lịch sử làm bài
         </button>
         <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-xl p-8 text-center">
-          <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 ${
-            submittedData.score >= 80 ? "bg-green-100 dark:bg-green-900/30" :
-            submittedData.score >= 50 ? "bg-yellow-100 dark:bg-yellow-900/30" :
-            "bg-red-100 dark:bg-red-900/30"}`}>
+          <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 ${submittedData.score >= 80 ? "bg-green-100 dark:bg-green-900/30" :
+              submittedData.score >= 50 ? "bg-yellow-100 dark:bg-yellow-900/30" :
+                "bg-red-100 dark:bg-red-900/30"}`}>
             {submittedData.score >= 80
               ? <CheckCircle2 size={36} className="text-green-500" />
               : <AlertCircle size={36} className={submittedData.score >= 50 ? "text-yellow-500" : "text-red-500"} />}
@@ -455,7 +436,7 @@ function ResultView({ submittedData, assignment, onBack, classId }: any) {
           <div className="text-5xl font-black text-indigo-600 dark:text-indigo-400 mb-2 mt-4">{submittedData.score}%</div>
           <p className="text-gray-500 text-sm mb-8">{submittedData.correctAnswers}/{submittedData.totalQuestions} câu đúng</p>
 
-          {(assignment?.allowReviewAnswers !== false) && submittedData.answerDetails.length > 0 && (
+          {submittedData.allowReview && submittedData.answerDetails.length > 0 && (
             <div className="text-left space-y-2 mt-4 pt-6 border-t border-gray-100 dark:border-gray-800">
               <h3 className="font-bold text-sm text-gray-800 dark:text-gray-200 mb-3">Chi tiết từng câu</h3>
               {submittedData.answerDetails.map((a: any, i: number) => (
@@ -472,7 +453,7 @@ function ResultView({ submittedData, assignment, onBack, classId }: any) {
               ))}
             </div>
           )}
-          {assignment?.allowReviewAnswers === false && (
+          {!submittedData.allowReview && (
             <p className="text-xs text-gray-400 mt-4">Giáo viên không cho phép xem đáp án chi tiết.</p>
           )}
         </div>
@@ -484,14 +465,13 @@ function ResultView({ submittedData, assignment, onBack, classId }: any) {
 function StudentAttemptRow({ attempt, pct, allowReview }: any) {
   const [expanded, setExpanded] = useState(false);
   let details: any[] = [];
-  try { details = attempt.answersJson ? JSON.parse(attempt.answersJson) : []; } catch {}
+  try { details = attempt.answersJson ? JSON.parse(attempt.answersJson) : []; } catch { }
 
   return (
     <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
       <button onClick={() => setExpanded(!expanded)} className="w-full flex items-center gap-4 p-4 text-left hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-        <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0 ${
-          pct >= 80 ? "bg-green-100 text-green-700" : pct >= 50 ? "bg-yellow-100 text-yellow-700" : "bg-red-100 text-red-600"
-        }`}>{pct}%</div>
+        <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0 ${pct >= 80 ? "bg-green-100 text-green-700" : pct >= 50 ? "bg-yellow-100 text-yellow-700" : "bg-red-100 text-red-600"
+          }`}>{pct}%</div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-gray-900 dark:text-white">Lần {attempt.attemptNumber}</p>
           <p className="text-xs text-gray-400">
@@ -613,7 +593,7 @@ function AssignmentQuestionCard({
         term={card.term}
         // Only show correct answer hint AFTER submission
         definition={submitted ? card.definition : undefined}
-        userAnswer={submitted ? (userAnswer ?? "") : (userAnswer || undefined)}
+        userAnswer={userAnswer ?? ""}
         readOnly={submitted}
         onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
           onAnswer(card.id, card.term, e.target.value, card.definition)

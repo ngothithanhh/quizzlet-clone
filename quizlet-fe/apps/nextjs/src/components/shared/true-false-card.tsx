@@ -35,7 +35,7 @@ const TrueFalseCard = forwardRef<HTMLInputElement, TrueFalseCardProps>(
               <span className="text-xl">{answer}</span>
             </div>
           </div>
-          {!userAnswer && <span className="mb-4">Choose answer</span>}
+          {!userAnswer && <span className="mb-4">Chọn đáp án</span>}
           <div className="flex gap-4">
             <Label htmlFor={`true-false-${index}-true`} className="flex-1">
               <Input
@@ -53,13 +53,13 @@ const TrueFalseCard = forwardRef<HTMLInputElement, TrueFalseCardProps>(
                   "border-2 peer-checked:border-blue-600 peer-checked:bg-blue-600/10",
                   {
                     "border-red-600 bg-red-600/10":
-                      definition && answer !== definition && userAnswer === "true",
+                      answer !== definition && userAnswer === "true",
                     "border-green-600 bg-green-600/10":
-                      definition && answer === definition && userAnswer,
+                      answer === definition && userAnswer,
                   },
                 )}
               >
-                <CardContent className="p-4">True</CardContent>
+                <CardContent className="p-4">Đúng</CardContent>
               </Card>
             </Label>
             <Label htmlFor={`true-false-${index}-false`} className="flex-1">
@@ -78,13 +78,13 @@ const TrueFalseCard = forwardRef<HTMLInputElement, TrueFalseCardProps>(
                   "border-2 peer-checked:border-blue-600 peer-checked:bg-blue-600/10",
                   {
                     "border-red-600 bg-red-600/10":
-                      definition && answer === definition && userAnswer === "false",
+                      answer === definition && userAnswer === "false",
                     "border-green-600 bg-green-600/10":
-                      definition && answer !== definition && userAnswer,
+                      answer !== definition && userAnswer,
                   },
                 )}
               >
-                <CardContent className="p-4">False</CardContent>
+                <CardContent className="p-4">Sai</CardContent>
               </Card>
             </Label>
           </div>

@@ -36,11 +36,11 @@ const CreateOptionsDropdown = () => {
     <div className="hidden md:block">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline">Create</Button>
+          <Button variant="outline">Tạo mới</Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start">
-          <DropdownMenuItem onClick={onFolderClick}>Folder</DropdownMenuItem>
-          <DropdownMenuItem onClick={onStudySetClick}>Study set</DropdownMenuItem>
+          <DropdownMenuItem onClick={onFolderClick}>Thư mục</DropdownMenuItem>
+          <DropdownMenuItem onClick={onStudySetClick}>Bộ Flashcard</DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     </div>

@@ -35,11 +35,11 @@ const StudySetShareDialog = ({ id }: { id: string }) => {
             </Button>
           </DialogTrigger>
         </TooltipTrigger>
-        <TooltipContent>Share</TooltipContent>
+        <TooltipContent>Chia sẻ</TooltipContent>
       </Tooltip>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Share link</DialogTitle>
+          <DialogTitle>Chia sẻ liên kết</DialogTitle>
           <DialogDescription>
             Anyone who has this link will be able to view this.
           </DialogDescription>

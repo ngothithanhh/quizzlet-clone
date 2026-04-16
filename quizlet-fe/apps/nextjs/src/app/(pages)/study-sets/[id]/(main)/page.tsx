@@ -54,7 +54,7 @@ export default async function StudySet({ params: { id } }: StudySetProps) {
           <StudySetFlashcards />
           <Link href={`/study-sets/${id}/edit`}>
             <Button size="lg" className="m-auto mb-8 block">
-              Add or Remove Terms
+              Thêm hoặc xóa thẻ
             </Button>
           </Link>
           {(otherStudySets?.length ?? 0) > 0 && (

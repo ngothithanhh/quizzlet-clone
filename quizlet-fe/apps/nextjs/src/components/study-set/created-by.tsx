@@ -18,7 +18,7 @@ const CreatedBy = ({
         <AvatarFallback>{name?.at(0)}</AvatarFallback>
       </Avatar>
       <div className="flex flex-col">
-        <span className="text-xs font-semibold">Created by</span>
+        <span className="text-xs font-semibold">Tạo bởi</span>
         <span className="text-sm font-medium">{name}</span>
       </div>
     </Link>

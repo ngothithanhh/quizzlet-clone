@@ -52,10 +52,10 @@ const ProfileLayout = ({ user, children }: ProfileLayoutProps) => {
             </Link>
           )}
           <Link href={`/users/${id}/study-sets`}>
-            <TabsTrigger value="study-sets">Study sets</TabsTrigger>
+            <TabsTrigger value="study-sets">Bộ Flashcard</TabsTrigger>
           </Link>
           <Link href={`/users/${id}/folders`}>
-            <TabsTrigger value="folders">Folders</TabsTrigger>
+            <TabsTrigger value="folders">Thư mục</TabsTrigger>
           </Link>
         </TabsList>
       </Tabs>

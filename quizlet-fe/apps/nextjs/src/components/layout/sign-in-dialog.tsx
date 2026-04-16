@@ -23,9 +23,9 @@ const SignInDialog = ({ children }: PropsWithChildren) => {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Create Account</DialogTitle>
+          <DialogTitle>Tạo tài khoản</DialogTitle>
           <DialogDescription>
-            Sign up to create your account and start learning.
+            Đăng ký để bắt đầu học ngay.
           </DialogDescription>
         </DialogHeader>
         
@@ -39,7 +39,7 @@ const SignInDialog = ({ children }: PropsWithChildren) => {
                 : "text-gray-600 hover:text-gray-800"
             }`}
           >
-            Quick Sign Up
+            Đăng ký nhanh
           </button>
           <button
             onClick={() => setActiveTab("email")}
@@ -49,7 +49,7 @@ const SignInDialog = ({ children }: PropsWithChildren) => {
                 : "text-gray-600 hover:text-gray-800"
             }`}
           >
-            Email Sign Up
+            Đăng ký bằng Email
           </button>
         </div>
 

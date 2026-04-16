@@ -97,7 +97,7 @@ const EditFlashcardDialog = ({ flashcard }: EditFlashcardDialogProps) => {
               name="term"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Term</FormLabel>
+                  <FormLabel>Thuật ngữ</FormLabel>
                   <FormControl>
                     <Input disabled={isPending} placeholder="2+2" {...field} />
                   </FormControl>
@@ -111,7 +111,7 @@ const EditFlashcardDialog = ({ flashcard }: EditFlashcardDialogProps) => {
               name="definition"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Definition</FormLabel>
+                  <FormLabel>Định nghĩa</FormLabel>
                   <FormControl>
                     <Input disabled={isPending} placeholder="4" {...field} />
                   </FormControl>
@@ -122,7 +122,7 @@ const EditFlashcardDialog = ({ flashcard }: EditFlashcardDialogProps) => {
             />
             <div className="flex justify-end gap-2">
               <DialogClose asChild>
-                <Button variant="outline">Close</Button>
+                <Button variant="outline">Đóng</Button>
               </DialogClose>
               <Button disabled={isPending} type="submit">
                 {isPending ? (

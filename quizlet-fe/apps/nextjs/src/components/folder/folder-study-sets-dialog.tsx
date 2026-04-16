@@ -43,13 +43,13 @@ const FolderStudySetsDialog = ({ userId }: FolderStudySetsDialogProps) => {
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Add/remove study set from folder</DialogTitle>
+          <DialogTitle>Thêm/xóa bộ Flashcard</DialogTitle>
           <DialogDescription>
             Manage study sets within your folder.
           </DialogDescription>
         </DialogHeader>
         <Link href="/create-set">
-          <Button className="w-full">Create new study set</Button>
+          <Button className="w-full">Tạo bộ Flashcard mới</Button>
         </Link>
 
         {allStudySets.length > 0 ? (

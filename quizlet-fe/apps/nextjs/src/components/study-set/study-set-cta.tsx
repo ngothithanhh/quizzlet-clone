@@ -99,12 +99,12 @@ const StudySetCTA = ({ id, userId, isPublic, studySetId }: StudySetCTAProps) => 
               <TooltipTrigger asChild>
                 <Button size="icon" variant="outline">
                   <Edit size={16} />
-                  <span className="sr-only">Edit</span>
+                  <span className="sr-only">Chỉnh sửa</span>
                 </Button>
               </TooltipTrigger>
             </Link>
             <TooltipContent>
-              <p>Edit</p>
+              <p>Chỉnh sửa</p>
             </TooltipContent>
           </Tooltip>
         )}

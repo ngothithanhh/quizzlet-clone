@@ -14,7 +14,7 @@ const TestAnswer = ({ answer }: TestAnswerProps) => {
 
   return (
     <>
-      <span className="mb-6 text-xl font-semibold">Your answers</span>
+      <span className="mb-6 text-xl font-semibold">Kết quả của bạn</span>
       <div className="flex flex-col gap-6">
         {trueOrFalse.map(({ answer, term, userAnswer, definition }, index) => (
           <TrueFalseCard

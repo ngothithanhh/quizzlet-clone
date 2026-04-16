@@ -74,7 +74,7 @@ const EditProfilePicture = () => {
             <User />
           </AvatarFallback>
         </Avatar>
-        <span className="text-xl font-semibold">Profile Picture</span>
+        <span className="text-xl font-semibold">Ảnh đại diện</span>
       </div>
       <Card className="flex-1">
         <CardContent className="p-6">

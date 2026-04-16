@@ -110,7 +110,7 @@ const FolderDialog = ({
         <DialogHeader>
           <DialogTitle>{defaultValues ? "Edit" : "Create"} folder</DialogTitle>
           <DialogDescription>
-            Manage your study sets within folder.
+            Quản lý bộ Flashcard trong thư mục.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -157,7 +157,7 @@ const FolderDialog = ({
             />
             <div className="flex justify-end gap-2">
               <DialogClose asChild>
-                <Button variant="outline">Close</Button>
+                <Button variant="outline">Đóng</Button>
               </DialogClose>
 
               <Button disabled={isPending} type="submit">

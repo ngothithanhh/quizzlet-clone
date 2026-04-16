@@ -28,14 +28,14 @@ const MobileMenu = () => {
         <div className="flex flex-col py-4">
           <Link href={isLoggedIn ? "/latest" : "/"}>
             <Button variant="ghost" className="w-full justify-start">
-              Home
+              Trang chủ
             </Button>
           </Link>
-          <span className="p-4 text-sm font-medium">Create</span>
+          <span className="p-4 text-sm font-medium">Tạo mới</span>
           <div className="flex flex-col">
             <Link href="/create-set">
               <Button variant="ghost" className="ml-4 w-full justify-start">
-                Study set
+                Bộ Flashcard
               </Button>
             </Link>
             <Button
@@ -43,7 +43,7 @@ const MobileMenu = () => {
               variant="ghost"
               className="ml-4 w-full justify-start"
             >
-              Folder
+              Thư mục
             </Button>
           </div>
         </div>

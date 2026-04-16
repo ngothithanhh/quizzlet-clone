@@ -51,7 +51,7 @@ const GameResult = ({
                 <AlertDescription>{cardCount - hard}</AlertDescription>
               </Alert>
               <Alert className="flex items-center justify-between">
-                <AlertTitle className="mb-0">Learning</AlertTitle>
+                <AlertTitle className="mb-0">Đang học</AlertTitle>
                 <AlertDescription>{hard}</AlertDescription>
               </Alert>
             </div>

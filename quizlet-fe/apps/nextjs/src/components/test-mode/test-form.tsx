@@ -99,7 +99,7 @@ const TestForm = ({ test, onSubmit }: TestFormProps) => {
             )}
           />
         ))}
-        <Button type="submit">Submit</Button>
+        <Button type="submit">Nộp bài</Button>
       </form>
     </Form>
   );

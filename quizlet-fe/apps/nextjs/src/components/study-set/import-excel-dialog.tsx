@@ -171,7 +171,7 @@ export default function ImportExcelDialog({ studySetId, onSuccess }: ImportExcel
 
           <div className="flex items-start gap-2 text-xs text-amber-600 bg-amber-50 dark:bg-amber-900/20 p-3 rounded-lg">
             <AlertTriangle size={13} className="flex-shrink-0 mt-0.5" />
-            <span>File cần có 2 cột: <strong>Term</strong> và <strong>Definition</strong>. Xem file mẫu để biết định dạng chính xác.</span>
+            <span>File cần có 2 cột: <strong>Thuật ngữ</strong> và <strong>Định nghĩa</strong>. Xem file mẫu để biết định dạng chính xác.</span>
           </div>
         </div>
 

@@ -20,7 +20,7 @@ const FolderAuthor = () => {
     <div className="flex items-center gap-6">
       <span className="text-sm">{folder.studySets?.length ?? 0} sets</span>
       <div className="flex items-center gap-2">
-        <span className="text-sm font-semibold">created by</span>
+        <span className="text-sm font-semibold">Tạo bởi</span>
         <Link href={`/users/${userId}`} className="flex items-center gap-2">
           <Avatar className="h-6 w-6">
             <AvatarFallback>

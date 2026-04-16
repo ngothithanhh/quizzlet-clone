@@ -20,7 +20,7 @@ const StudySetCard = ({
         href={`/study-sets/${id}`}
         className="absolute left-0 top-0 h-full w-full"
       ></Link>
-      <CardContent className="relative p-6 z-10 flex flex-col h-full pointer-events-none">
+      <CardContent className="relative p-6 z-10 flex flex-col h-full">
         <h3 className="mb-3 text-lg font-bold text-card-foreground group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors line-clamp-2">
           {title}
         </h3>
@@ -29,7 +29,7 @@ const StudySetCard = ({
         </Badge>
         <Link
           href={`/users/${user.id}`}
-          className="mt-auto pt-6 inline-flex items-center hover:opacity-80 transition-opacity w-fit pointer-events-auto"
+          className="mt-auto pt-6 inline-flex items-center hover:opacity-80 transition-opacity w-fit"
         >
           <Avatar className="mr-3 h-7 w-7 ring-2 ring-background shadow-sm">
             <AvatarImage src={user.image ?? undefined} alt="author avatar" />

@@ -30,7 +30,7 @@ export default async function Folder({ params: { slug } }: FolderProps) {
         <FolderCTA slug={slug} />
       </div>
       <FolderInfo />
-      <h2 className="mb-4 text-2xl font-bold">Study sets</h2>
+      <h2 className="mb-4 text-2xl font-bold">Bộ Flashcard</h2>
       <FolderStudySets />
     </HydrateClient>
   );

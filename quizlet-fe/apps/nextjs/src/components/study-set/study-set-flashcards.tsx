@@ -17,7 +17,7 @@ const StudySetFlashcards = () => {
     <div className="mb-8">
       <div className="mb-5 flex items-center justify-between">
         <span className="text-lg font-bold">
-          Terms in this set ({flashcards.length})
+          Các thẻ trong bộ này ({flashcards.length})
         </span>
         {/* Luôn hiện cho user đã đăng nhập */}
         {user && (

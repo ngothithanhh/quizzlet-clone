@@ -30,25 +30,26 @@ const WrittenCard = forwardRef<HTMLInputElement, WrittenCardProps>(
           </div>
           <div>
             <FormItem>
-              <Label>Your answer</Label>
+              <Label>Câu trả lời của bạn</Label>
               <Input
                 ref={ref}
                 type="text"
-                {...(userAnswer !== undefined ? { value: userAnswer } : {})}
                 {...props}
-                className={cn(props.className, {
+                readOnly={!!userAnswer}
+                {...(userAnswer !== undefined ? { value: userAnswer } : {})}
+                className={cn({
                   "border-green-600 bg-green-600/10":
-                    definition && userAnswer && userAnswer === definition,
+                    userAnswer && userAnswer === definition,
                   "border-red-600 bg-red-600/10":
-                    definition && userAnswer && userAnswer !== definition,
+                    userAnswer && userAnswer !== definition,
                 })}
               />
             </FormItem>
-            {definition && userAnswer !== undefined && userAnswer !== definition && (
+            {userAnswer !== undefined && userAnswer !== definition && (
               <Alert className="mt-4 border-green-600 text-green-600">
                 <Check size={16} className="text-green-600" />
                 <AlertTitle>{definition}</AlertTitle>
-                <AlertDescription>Correct answer</AlertDescription>
+                <AlertDescription>Đáp án đúng</AlertDescription>
               </Alert>
             )}
           </div>

@@ -28,7 +28,7 @@ const UserStudySetsGrid = ({ userId }: { userId: string }) => {
 
 const UserStudySets = ({
   userId,
-  title = "Your study sets",
+  title = "Bộ Flashcard của bạn",
 }: {
   userId: string;
   title?: string;

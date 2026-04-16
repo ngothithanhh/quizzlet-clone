@@ -10,7 +10,7 @@ const OtherStudySets = ({ studySets }: OtherStudySetsProps) => {
   return (
     <div>
       <span className="mb-5 block text-lg font-bold">
-        Other sets by this creator
+        Bộ khác của tác giả
       </span>
       <div className="grid gap-4 md:grid-cols-2">
         {studySets.map((set) => (

@@ -17,7 +17,7 @@ const MatchGame = ({ id }: { id: string }) => {
     <>
       <div className="mb-5 flex justify-end">
         <Link href={`/study-sets/${id}`}>
-          <Button variant="ghost">Back to set</Button>
+          <Button variant="ghost">Quay lại</Button>
         </Link>
       </div>
       {screen === "initial" && <StartScreen />}

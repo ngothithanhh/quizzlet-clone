@@ -33,7 +33,7 @@ const Navbar = () => {
           className="mx-2 hidden md:inline"
         >
           <Button variant="link" className="text-foreground">
-            Home
+            Trang chủ
           </Button>
         </Link>
         {isLoggedIn && (

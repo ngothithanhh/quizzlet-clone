@@ -18,7 +18,7 @@ const StudySetToPrint = forwardRef<HTMLDivElement, StudySetToPrintProps>(
             {description && <p className="text-xl">{description}</p>}
           </div>
           <div className="mb-2 text-lg font-bold">
-            Terms in this set ({flashcards.length})
+            Các thẻ trong bộ này ({flashcards.length})
           </div>
           <div className="flex flex-col gap-2">
             {flashcards.map((flashcard) => (

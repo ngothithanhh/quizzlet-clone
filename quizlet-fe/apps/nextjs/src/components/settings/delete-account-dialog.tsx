@@ -13,7 +13,7 @@ const DeleteAccountDialog = () => {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="destructive">Delete Account</Button>
+        <Button variant="destructive">Xóa tài khoản</Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>

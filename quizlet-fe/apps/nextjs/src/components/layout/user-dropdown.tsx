@@ -43,7 +43,7 @@ const UserDropdown = () => {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <Link href={`/users/${user.id}`}>
-          <DropdownMenuItem>Profile</DropdownMenuItem>
+          <DropdownMenuItem>Trang cá nhân</DropdownMenuItem>
         </Link>
         <Link href="/favorites">
           <DropdownMenuItem>❤️ Yêu thích</DropdownMenuItem>
@@ -52,13 +52,13 @@ const UserDropdown = () => {
           <DropdownMenuItem>🏫 Lớp học</DropdownMenuItem>
         </Link>
         <Link href="/settings">
-          <DropdownMenuItem>Settings</DropdownMenuItem>
+          <DropdownMenuItem>Cài đặt</DropdownMenuItem>
         </Link>
         <DropdownMenuItem
           className="cursor-pointer"
           onClick={() => void logout()}
         >
-          Sign out
+          Đăng xuất
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

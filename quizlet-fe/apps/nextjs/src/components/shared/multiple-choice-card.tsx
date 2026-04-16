@@ -52,7 +52,7 @@ const MultipleChoiceCard = forwardRef<
           )}
         </div> */}
           {!userAnswer && (
-            <span className="mb-4 inline-block">Choose answer</span>
+            <span className="mb-4 inline-block">Chọn đáp án</span>
           )}
           <div className="grid gap-4 sm:grid-cols-2">
             {answers.map((answer, answerIndex) => (
@@ -76,9 +76,8 @@ const MultipleChoiceCard = forwardRef<
                     "cursor-pointer border-2 peer-checked:border-blue-600 peer-checked:bg-blue-600/10",
                     {
                       "border-red-600 bg-red-600/10":
-                        definition && answer !== definition && userAnswer === answer,
-                      "border-green-600 bg-green-600/10":
-                        definition && answer === definition && userAnswer,
+                        answer !== definition && userAnswer === answer,
+                      "border-green-600 bg-green-600/10": answer === definition,
                     },
                   )}
                 >

@@ -57,7 +57,7 @@ const DeleteStudySetDialog = ({
         </DialogHeader>
         <DialogFooter>
           <DialogClose asChild disabled={isPending}>
-            <Button variant="outline">Cancel</Button>
+            <Button variant="outline">Hủy</Button>
           </DialogClose>
           <Button
             disabled={isPending}

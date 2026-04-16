@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 export default function Settings() {
   return (
     <>
-      <h2 className="mb-8 text-2xl font-bold">Settings</h2>
+      <h2 className="mb-8 text-2xl font-bold">Cài đặt</h2>
       <div className="flex flex-col gap-10">
         <EditProfilePicture />
         <ChangePassword />

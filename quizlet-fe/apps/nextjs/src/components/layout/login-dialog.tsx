@@ -19,9 +19,9 @@ const LoginDialog = ({ children }: PropsWithChildren) => {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Log In</DialogTitle>
+          <DialogTitle>Đăng nhập</DialogTitle>
           <DialogDescription>
-            Sign in to your account to continue
+            Đăng nhập để tiếp tục học
           </DialogDescription>
         </DialogHeader>
         <div>{children}</div>
