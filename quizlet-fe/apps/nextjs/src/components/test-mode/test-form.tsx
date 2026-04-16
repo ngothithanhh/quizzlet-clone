@@ -9,35 +9,16 @@ import MultipleChoiceCard from "../shared/multiple-choice-card";
 import TrueFalseCard from "../shared/true-false-card";
 import WrittenCard from "../shared/written-card";
 
-const baseFlashcard = z.object({
-  id: z.number(),
-  term: z.string(),
-  definition: z.string(),
-});
-
-const written = baseFlashcard.extend({
-  // Server includes position for written cards.
-  position: z.number(),
-  userAnswer: z.string().min(1),
-});
-
-const trueOrFalse = baseFlashcard.extend({
-  answer: z.string(),
-  userAnswer: z.string().min(1),
-});
-
-const multipleChoice = baseFlashcard.extend({
-  // Server includes these fields only for multiple choice cards.
-  position: z.number(),
-  studySetId: z.number(),
-  answers: z.array(z.string()),
-  userAnswer: z.string().min(1),
-});
+// NOTE: react-hook-form's useFieldArray may replace each item's `id` with an
+// internal UUID string for React key tracking. Using passthrough + only
+// validating `userAnswer` avoids silent schema mismatches on metadata fields.
+const withUserAnswer = (required: string) =>
+  z.object({ userAnswer: z.string().min(1, required) }).passthrough();
 
 const testSchema = z.object({
-  trueOrFalse: z.array(trueOrFalse),
-  multipleChoice: z.array(multipleChoice),
-  written: z.array(written),
+  trueOrFalse: z.array(withUserAnswer("Please choose an answer (True/False)")),
+  multipleChoice: z.array(withUserAnswer("Please choose an answer")),
+  written: z.array(withUserAnswer("Please write your answer")),
 });
 
 interface TestFormProps {
@@ -68,10 +49,14 @@ const TestForm = ({ test, onSubmit }: TestFormProps) => {
     name: "written",
   });
 
+  const handleInvalid = (errors: unknown) => {
+    console.error("[TestForm] Validation failed — unanswered questions:", errors);
+  };
+
   return (
     <Form {...form}>
       <form
-        onSubmit={form.handleSubmit(onSubmit, console.log)}
+        onSubmit={form.handleSubmit(onSubmit as any, handleInvalid)}
         className="space-y-8"
       >
         {trueOrFalse.map(({ term, answer, id }, index) => (
