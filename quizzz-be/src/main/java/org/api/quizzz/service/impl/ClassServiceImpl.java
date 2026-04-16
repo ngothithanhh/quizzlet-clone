@@ -287,8 +287,13 @@ public class ClassServiceImpl implements ClassService {
 
         Classroom c = classRepo.findById(classId)
                 .orElseThrow(() -> new RuntimeException("Class not found"));
-        StudySet ss = studySetRepo.findById(req.getStudySetId())
-                .orElseThrow(() -> new RuntimeException("StudySet not found"));
+
+        // studySet là tuỳ chọn — nếu không có thì assignment không gắn học phần nào
+        StudySet ss = null;
+        if (req.getStudySetId() != null) {
+            ss = studySetRepo.findById(req.getStudySetId())
+                    .orElseThrow(() -> new RuntimeException("StudySet not found"));
+        }
 
         Assignment assignment = Assignment.builder()
                 .classroom(c)

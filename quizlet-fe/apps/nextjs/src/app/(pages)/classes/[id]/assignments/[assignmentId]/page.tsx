@@ -52,7 +52,7 @@ export default function AssignmentDetailPage() {
   );
 
   const studySetId = assignment?.studySetId;
-  const { data: testCards } = api.studySet.testCards.useQuery(
+  const { data: testCards, isLoading: isLoadingCards } = api.studySet.testCards.useQuery(
     { id: studySetId! },
     { enabled: !!studySetId },
   );
@@ -226,10 +226,14 @@ export default function AssignmentDetailPage() {
             </div>
 
             <div className="mt-5">
-              {canTakeMore && allCards.length > 0 ? (
-                <Button onClick={startQuiz} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl gap-2">
-                  <Send size={16} /> {attemptsUsed === 0 ? "Bắt đầu làm bài" : "Làm lại bài"}
-                </Button>
+              {canTakeMore && (isLoadingCards || allCards.length > 0) ? (
+                isLoadingCards ? (
+                  <div className="flex justify-center py-3"><Loader2 size={20} className="animate-spin text-indigo-500" /></div>
+                ) : (
+                  <Button onClick={startQuiz} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl gap-2">
+                    <Send size={16} /> {attemptsUsed === 0 ? "Bắt đầu làm bài" : "Làm lại bài"}
+                  </Button>
+                )
               ) : !canTakeMore ? (
                 <p className="text-center text-sm text-red-500 font-medium">Bạn đã hết lượt nộp bài (tối đa {maxAttempts} lần)</p>
               ) : (

@@ -70,12 +70,16 @@ export default function CreateAssignmentDialog({ classId }: CreateAssignmentDial
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
+    if (!selectedSet) {
+      toast.error("Vui lòng chọn học phần cho bài kiểm tra");
+      return;
+    }
     mutate({
       classId,
       title: title.trim(),
       description: description.trim() || undefined,
       dueDate: dueDate || undefined,
-      studySetId: selectedSet?.id,
+      studySetId: selectedSet.id,
       timeLimitMinutes: timeLimitMinutes ? parseInt(timeLimitMinutes) : undefined,
       maxAttempts: maxAttempts ? parseInt(maxAttempts) : undefined,
       allowReviewAnswers,
@@ -133,7 +137,7 @@ export default function CreateAssignmentDialog({ classId }: CreateAssignmentDial
 
           {/* Study Set picker */}
           <div className="space-y-1.5">
-            <Label className="text-sm">Học phần gắn kèm <span className="text-gray-400 font-normal">(tuỳ chọn)</span></Label>
+            <Label className="text-sm">Học phần gắn kèm <span className="text-red-500">*</span></Label>
 
             {selectedSet ? (
               /* Selected display */

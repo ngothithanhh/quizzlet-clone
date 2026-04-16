@@ -273,30 +273,64 @@ public class StudySetServiceImpl implements StudySetService {
                 .build();
         }
 
+        // Shuffle a copy to randomize question order
         List<org.api.quizzz.entity.Flashcard> copy = new java.util.ArrayList<>(raw);
         java.util.Collections.shuffle(copy);
 
-        int tenPercent = (int) (0.1 * raw.size());
-        int count = Math.max(tenPercent, 1);
-        
-        List<org.api.quizzz.entity.Flashcard> mcInitial = new java.util.ArrayList<>();
-        for (int i=0; i<count && !copy.isEmpty(); i++) mcInitial.add(copy.remove(0));
-        
-        List<LearnCardResponse> multipleChoice = generateMultipleChoiceCards(mcInitial, raw);
-        
-        List<FlashcardResponse> written = new java.util.ArrayList<>();
-        for (int i=0; i<count && !copy.isEmpty(); i++) written.add(toFlashcardResponse(copy.remove(0)));
-        
+        int total = copy.size();
+
+        // Distribute: MC requires ≥4 cards to generate distractors
+        // If fewer than 4 cards → all written
+        // Otherwise split roughly 1/3 MC, 1/3 written, 1/3 TF
+        int mcCount = 0;
+        int writtenCount = 0;
+        // trueOrFalse gets the rest
+
+        if (total >= 4) {
+            mcCount = Math.max(1, total / 3);
+            writtenCount = Math.max(1, total / 3);
+        } else {
+            // Too few cards for MC distractors → use written + TF only
+            writtenCount = Math.max(1, total / 2);
+        }
+
+        // Ensure we don't exceed total
+        mcCount = Math.min(mcCount, total);
+        writtenCount = Math.min(writtenCount, total - mcCount);
+        // trueOrFalse = rest
+
+        List<org.api.quizzz.entity.Flashcard> mcCards = new java.util.ArrayList<>();
+        for (int i = 0; i < mcCount && !copy.isEmpty(); i++) mcCards.add(copy.remove(0));
+
+        List<org.api.quizzz.entity.Flashcard> writtenCards = new java.util.ArrayList<>();
+        for (int i = 0; i < writtenCount && !copy.isEmpty(); i++) writtenCards.add(copy.remove(0));
+
+        // Remaining → true/false
+        List<org.api.quizzz.entity.Flashcard> tfCards = new java.util.ArrayList<>(copy);
+
+        // Build MC questions (uses full raw pool for distractors)
+        List<LearnCardResponse> multipleChoice = generateMultipleChoiceCards(mcCards, raw);
+
+        // Build Written questions
+        List<FlashcardResponse> written = writtenCards.stream()
+                .map(this::toFlashcardResponse)
+                .collect(Collectors.toList());
+
+        // Build True/False questions
         List<TrueFalseCardResponse> trueOrFalse = new java.util.ArrayList<>();
         java.util.Random rand = new java.util.Random();
-        for (var card : copy) {
-            List<String> falseAnswers = raw.stream()
+        for (var card : tfCards) {
+            List<String> otherDefs = raw.stream()
                 .filter(c -> !c.getId().equals(card.getId()))
                 .map(org.api.quizzz.entity.Flashcard::getDefinition)
                 .collect(Collectors.toList());
-            String falseAnswer = falseAnswers.isEmpty() ? card.getDefinition() : falseAnswers.get(rand.nextInt(falseAnswers.size()));
-            String answer = rand.nextBoolean() ? falseAnswer : card.getDefinition();
-            
+            // Pick a random answer: 50% chance correct, 50% wrong (if available)
+            String answer;
+            if (!otherDefs.isEmpty() && rand.nextBoolean()) {
+                answer = otherDefs.get(rand.nextInt(otherDefs.size())); // wrong answer
+            } else {
+                answer = card.getDefinition(); // correct answer
+            }
             trueOrFalse.add(TrueFalseCardResponse.builder()
                 .id(card.getId())
                 .term(card.getTerm())
@@ -304,7 +338,7 @@ public class StudySetServiceImpl implements StudySetService {
                 .answer(answer)
                 .build());
         }
-        
+
         return TestCardsResponse.builder()
             .multipleChoice(multipleChoice)
             .written(written)
