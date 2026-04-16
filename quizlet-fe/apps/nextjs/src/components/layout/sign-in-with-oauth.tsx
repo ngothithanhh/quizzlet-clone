@@ -2,11 +2,13 @@
 
 import { Button } from "@acme/ui/button";
 
+import { env } from "~/env";
 import GoogleIcon from "../icons/google";
 
 export default function SignInWithOauth() {
   const handleGoogleSignUp = () => {
-    window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/oauth2/authorization/google`;
+    const baseUrl = env.NEXT_PUBLIC_API_URL || "http://localhost:8080/quizzlet-clone";
+    window.location.href = `${baseUrl}/oauth2/authorization/google`;
   };
 
   return (

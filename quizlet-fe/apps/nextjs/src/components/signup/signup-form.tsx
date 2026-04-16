@@ -148,16 +148,18 @@ const SignUpForm = () => {
     return (
       <div className="space-y-4">
         {/* Google Sign Up */}
-        <form action={handleGoogleSignUp} className="w-full">
-          <Button
-            type="submit"
-            variant="outline"
-            className="w-full border border-gray-300 hover:bg-gray-50"
-          >
-            <GoogleIcon className="mr-2 h-4 w-4" />
-            Sign Up with Google
-          </Button>
-        </form>
+        <Button
+          type="button"
+          onClick={() => {
+            const baseUrl = env.NEXT_PUBLIC_API_URL || "http://localhost:8080/quizzlet-clone";
+            window.location.href = `${baseUrl}/oauth2/authorization/google`;
+          }}
+          variant="outline"
+          className="w-full border border-gray-300 hover:bg-gray-50"
+        >
+          <GoogleIcon className="mr-2 h-4 w-4" />
+          Sign Up with Google
+        </Button>
 
         {/* Divider */}
         <div className="relative">
