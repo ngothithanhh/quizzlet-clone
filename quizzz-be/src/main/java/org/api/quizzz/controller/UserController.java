@@ -43,4 +43,9 @@ public class UserController {
         userService.deleteUser(id);
     }
 
+    @GetMapping("/search")
+    public java.util.List<UserProfileResponse> searchUsers(@RequestParam String q) {
+        return userService.searchUsers(q);
+    }
+
 }

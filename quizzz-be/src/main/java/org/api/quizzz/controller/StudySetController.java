@@ -75,6 +75,22 @@ public class StudySetController {
     }
 
     /**
+     * 2.4b Thay đổi chế độ hiển thị (Công khai / Riêng tư)
+     * PATCH /api/studysets/{id}/visibility
+     * Body: { "isPublic": true/false }
+     */
+    @PatchMapping("/{id}/visibility")
+    public ResponseEntity<StudySetResponse> patchVisibility(
+            @PathVariable Long id,
+            @RequestBody java.util.Map<String, Boolean> body) {
+        Boolean isPublic = body.get("isPublic");
+        if (isPublic == null) {
+            return ResponseEntity.badRequest().build();
+        }
+        return ResponseEntity.ok(studySetService.setVisibility(id, isPublic));
+    }
+
+    /**
      * 2.5 Xóa StudySet
      * DELETE /api/studysets/{id}
      */

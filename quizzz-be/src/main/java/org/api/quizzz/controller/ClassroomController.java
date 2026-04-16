@@ -33,7 +33,7 @@ public class ClassroomController {
 
     /** 7.9 Lấy danh sách lớp học của user */
     @GetMapping("/my")
-    public ResponseEntity<List<ClassMemberResponse>> getMyClasses() {
+    public ResponseEntity<List<ClassroomResponse>> getMyClasses() {
         return ResponseEntity.ok(classService.getMyClasses());
     }
 
@@ -128,5 +128,24 @@ public class ClassroomController {
     @GetMapping("/assignments/{assignmentId}/submissions")
     public ResponseEntity<List<SubmissionResponse>> getSubmissions(@PathVariable Long assignmentId) {
         return ResponseEntity.ok(classService.getSubmissions(assignmentId));
+    }
+
+    /** 7.17 Lấy danh sách Học phần (Study Sets) trong lớp */
+    @GetMapping("/{classId}/studysets")
+    public ResponseEntity<List<StudySetResponse>> getStudySets(@PathVariable Long classId) {
+        return ResponseEntity.ok(classService.getStudySetsByClass(classId));
+    }
+
+    /** 7.18 Thêm Học phần vào lớp */
+    @PostMapping("/{classId}/studysets/{studySetId}")
+    public ResponseEntity<Map<String, String>> addStudySet(@PathVariable Long classId, @PathVariable Long studySetId) {
+        return ResponseEntity.ok(Map.of("message", classService.addStudySet(classId, studySetId)));
+    }
+
+    /** 7.19 Xóa Học phần khỏi lớp */
+    @DeleteMapping("/{classId}/studysets/{studySetId}")
+    public ResponseEntity<Void> removeStudySet(@PathVariable Long classId, @PathVariable Long studySetId) {
+        classService.removeStudySet(classId, studySetId);
+        return ResponseEntity.noContent().build();
     }
 }

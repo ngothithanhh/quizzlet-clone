@@ -129,6 +129,21 @@ public class StudySetServiceImpl implements StudySetService {
 
     @Override
     @Transactional
+    public StudySetResponse setVisibility(Long id, boolean isPublic) {
+        Long currentUserId = org.api.quizzz.utils.SecurityUtils.getCurrentUserId();
+        StudySet studySet = studySetRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("StudySet not found with ID: " + id));
+
+        if (!studySet.getUser().getId().equals(currentUserId)) {
+            throw new RuntimeException("Bạn không có quyền thay đổi chế độ hiển thị của học phần này");
+        }
+
+        studySet.setIsPublic(isPublic);
+        return toResponse(studySetRepository.save(studySet), false);
+    }
+
+    @Override
+    @Transactional
     public void deleteStudySet(Long id) {
         StudySet studySet = studySetRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("StudySet not found with ID: " + id));

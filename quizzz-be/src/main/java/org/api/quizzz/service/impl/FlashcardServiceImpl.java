@@ -20,6 +20,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -135,6 +136,34 @@ public class FlashcardServiceImpl implements FlashcardService {
         } catch (Exception e) {
             throw new RuntimeException("Lỗi khi đọc file Excel: " + e.getMessage());
         }
+    }
+
+    @Override
+    public List<Map<String, String>> parseExcel(MultipartFile file) {
+        if (file.isEmpty()) throw new RuntimeException("File không được để trống");
+
+        List<Map<String, String>> result = new ArrayList<>();
+        try (InputStream is = file.getInputStream();
+             Workbook workbook = new XSSFWorkbook(is)) {
+
+            Sheet sheet = workbook.getSheetAt(0);
+            DataFormatter formatter = new DataFormatter();
+
+            for (Row row : sheet) {
+                if (row.getRowNum() == 0) continue; // bỏ header
+                String term = formatter.formatCellValue(row.getCell(0)).trim();
+                String definition = formatter.formatCellValue(row.getCell(1)).trim();
+                if (!term.isBlank() && !definition.isBlank()) {
+                    result.add(java.util.Map.of("term", term, "definition", definition));
+                }
+            }
+
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RuntimeException("Lỗi khi đọc file Excel: " + e.getMessage());
+        }
+        return result;
     }
 
     @Override
