@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Star, Volume2 } from "lucide-react";
 
 import type { RouterOutputs } from "@acme/api";
@@ -12,7 +13,6 @@ import { toast } from "@acme/ui/toast";
 import { useSignInDialogContext } from "~/contexts/sign-in-dialog-context";
 import useStar from "~/hooks/use-star";
 import EditFlashcardDialog from "./edit-flashcard-dialog";
-import { api } from "~/trpc/react";
 
 interface FlashcardCardProps {
   flashcard: RouterOutputs["studySet"]["byId"]["flashcards"][number];
@@ -28,29 +28,29 @@ const FlashcardCard = ({
   const { toggleStar } = useStar(flashcard);
   const { onOpenChange } = useSignInDialogContext();
 
-  const ttsQuery = api.externalApi.tts.useQuery(
-    { text: term ?? "", lang: "en" },
-    { enabled: false },
-  );
+  const [ttsLoading, setTtsLoading] = useState(false);
+
+  const onTtsClick = () => {
+    if (!term) return;
+    if (typeof window === "undefined" || !window.speechSynthesis) {
+      toast.error("Trình duyệt không hỗ trợ phát âm");
+      return;
+    }
+    setTtsLoading(true);
+    window.speechSynthesis.cancel();
+    const utter = new SpeechSynthesisUtterance(term);
+    utter.lang = "en-US";
+    utter.rate = 0.9;
+    utter.onend = () => setTtsLoading(false);
+    utter.onerror = () => { setTtsLoading(false); toast.error("Không thể phát âm"); };
+    window.speechSynthesis.speak(utter);
+  };
 
   const onStarClick = () => {
     if (isLoggedIn) {
       toggleStar();
     } else {
       onOpenChange(true);
-    }
-  };
-
-  const onTtsClick = async () => {
-    if (!term) return;
-    try {
-      const result = await ttsQuery.refetch();
-      if (result.data?.audioUrl) {
-        const audio = new Audio(result.data.audioUrl);
-        void audio.play();
-      }
-    } catch {
-      toast.error("Không thể phát âm");
     }
   };
 
@@ -65,11 +65,11 @@ const FlashcardCard = ({
             variant="ghost"
             className="rounded-full"
             title="Nghe phát âm"
-            disabled={ttsQuery.isFetching}
+            disabled={ttsLoading}
           >
             <Volume2
               size={15}
-              className={ttsQuery.isFetching ? "animate-pulse text-blue-400" : "text-blue-500"}
+              className={ttsLoading ? "animate-pulse text-blue-400" : "text-blue-500"}
             />
           </Button>
           {editable && <EditFlashcardDialog flashcard={flashcard} />}

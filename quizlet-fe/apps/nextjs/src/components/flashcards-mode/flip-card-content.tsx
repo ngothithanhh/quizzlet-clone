@@ -1,6 +1,6 @@
 "use client";
 
-import type { MouseEvent } from "react";
+import { type MouseEvent, useState } from "react";
 import { Star, Volume2 } from "lucide-react";
 
 import type { RouterOutputs } from "@acme/api";
@@ -12,7 +12,6 @@ import { toast } from "@acme/ui/toast";
 import { useSignInDialogContext } from "~/contexts/sign-in-dialog-context";
 import useStar from "~/hooks/use-star";
 import EditFlashcardDialog from "../shared/edit-flashcard-dialog";
-import { api } from "~/trpc/react";
 
 interface FlipCardContentProps {
   flashcard: RouterOutputs["studySet"]["byId"]["flashcards"][0];
@@ -31,15 +30,27 @@ const FlipCardContent = ({
 
   const content = back ? flashcard.definition : flashcard.term;
 
-  // TTS — phát âm nội dung hiển thị
-  const ttsQuery = api.externalApi.tts.useQuery(
-    { text: content ?? "", lang: "en" },
-    { enabled: false },
-  );
+  const [ttsLoading, setTtsLoading] = useState(false);
+
+  const onTtsClick = (event: MouseEvent) => {
+    event.stopPropagation();
+    if (!content) return;
+    if (typeof window === "undefined" || !window.speechSynthesis) {
+      toast.error("Trình duyệt không hỗ trợ phát âm");
+      return;
+    }
+    setTtsLoading(true);
+    window.speechSynthesis.cancel();
+    const utter = new SpeechSynthesisUtterance(content);
+    utter.lang = "en-US";
+    utter.rate = 0.9;
+    utter.onend = () => setTtsLoading(false);
+    utter.onerror = () => { setTtsLoading(false); toast.error("Không thể phát âm"); };
+    window.speechSynthesis.speak(utter);
+  };
 
   const onStarClick = (event: MouseEvent) => {
     event.stopPropagation();
-
     if (isLoggedIn) {
       toggleStar();
     } else {
@@ -47,21 +58,7 @@ const FlipCardContent = ({
     }
   };
 
-  const onTtsClick = async (event: MouseEvent) => {
-    event.stopPropagation();
-    if (!content) return;
-    try {
-      const result = await ttsQuery.refetch();
-      if (result.data?.audioUrl) {
-        const audio = new Audio(result.data.audioUrl);
-        void audio.play();
-      }
-    } catch {
-      toast.error("Không thể phát âm");
-    }
-  };
-
-  const title = back ? "Definition" : "Term";
+  const title = back ? "Định nghĩa" : "Thuật ngữ";
 
   return (
     <div
@@ -80,11 +77,11 @@ const FlipCardContent = ({
               variant="ghost"
               size="icon"
               title="Nghe phát âm"
-              disabled={ttsQuery.isFetching}
+              disabled={ttsLoading}
             >
               <Volume2
                 size={16}
-                className={ttsQuery.isFetching ? "animate-pulse text-blue-400" : "text-blue-500 hover:text-blue-600"}
+                className={ttsLoading ? "animate-pulse text-blue-400" : "text-blue-500 hover:text-blue-600"}
               />
             </Button>
 

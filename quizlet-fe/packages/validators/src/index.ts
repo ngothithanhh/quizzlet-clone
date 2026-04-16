@@ -13,8 +13,8 @@ const FlashcardSchema = z.object({
   position: z.number(),
   id: z.number().optional(),
   studySetId: z.string().optional(),
-  imageUrl: z.string().optional(),
-  audioUrl: z.string().optional(),
+  imageUrl: z.string().nullish(),
+  audioUrl: z.string().nullish(),
 });
 
 export const StudySetSchema = z.object({
@@ -55,6 +55,6 @@ export const EditFlashcardSchema = z.object({
   id: z.number(),
   term: z.string().min(1, "Term is required"),
   definition: z.string().min(1, "Definition is required"),
-  imageUrl: z.string().optional(),
-  audioUrl: z.string().optional(),
+  imageUrl: z.string().nullish(),
+  audioUrl: z.string().nullish(),
 });
