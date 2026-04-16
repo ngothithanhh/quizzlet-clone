@@ -20,11 +20,18 @@ export interface AssignmentResponse {
   id: number;
   title: string;
   description?: string;
-  classId: number;
   studySetId?: number;
+  studySetTitle?: string;
+  classId?: number;
+  className?: string;
+  assignedById?: number;
+  assignedByUsername?: string;
   dueDate?: string;
   createdAt?: string;
   questionsCount?: number;
+  timeLimitMinutes?: number | null;
+  allowReviewAnswers?: boolean;
+  maxAttempts?: number | null;
 }
 
 export interface ClassroomResponse {
@@ -41,23 +48,6 @@ export interface ClassroomResponse {
   isCreator?: boolean;
   /** Role của user hiện tại: "TEACHER" | "STUDENT" | null */
   currentUserRole?: "TEACHER" | "STUDENT" | null;
-}
-
-export interface AssignmentResponse {
-  id: number;
-  title: string;
-  description?: string;
-  studySetId?: number;
-  studySetTitle?: string;
-  classId?: number;
-  className?: string;
-  assignedById?: number;
-  assignedByUsername?: string;
-  dueDate?: string;
-  createdAt?: string;
-  timeLimitMinutes?: number | null;
-  allowReviewAnswers?: boolean;
-  maxAttempts?: number | null;
 }
 
 export interface SubmissionResponse {
