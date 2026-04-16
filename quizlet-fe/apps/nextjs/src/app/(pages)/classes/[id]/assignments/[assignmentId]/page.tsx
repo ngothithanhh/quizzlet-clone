@@ -103,14 +103,6 @@ export default function AssignmentDetailPage() {
     setMode("taking");
   };
 
-  useEffect(() => {
-    if (timeLeft === null || submitted) return;
-    if (timeLeft <= 0) { void handleSubmit(true); return; }
-    timerRef.current = setTimeout(() => setTimeLeft((t) => (t !== null ? t - 1 : null)), 1000);
-    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [timeLeft, submitted, handleSubmit]);
-
   const handleAnswer = useCallback((flashcardId: number, term: string, userAnswer: string, correctAnswer: string) => {
     // Case-insensitive + trim whitespace comparison
     const isCorrect = userAnswer.trim().toLowerCase() === correctAnswer.trim().toLowerCase();
@@ -150,6 +142,15 @@ export default function AssignmentDetailPage() {
     submitMutation.mutate({ assignmentId: aId, score, correctAnswers, totalQuestions, durationSeconds, answers: answerList });
     if (autoSubmit) toast.info("Hết giờ! Bài thi đã được tự động nộp.");
   }, [submitted, answers, allCards, aId, assignment, startTime, submitMutation]);
+
+  // Timer effect — must be AFTER handleSubmit is defined
+  useEffect(() => {
+    if (timeLeft === null || submitted) return;
+    if (timeLeft <= 0) { void handleSubmit(true); return; }
+    timerRef.current = setTimeout(() => setTimeLeft((t) => (t !== null ? t - 1 : null)), 1000);
+    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timeLeft, submitted, handleSubmit]);
 
   if (loadingAssignment) {
     return <div className="min-h-screen flex items-center justify-center"><Loader2 size={32} className="animate-spin text-indigo-500" /></div>;
