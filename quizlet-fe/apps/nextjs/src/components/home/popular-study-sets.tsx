@@ -29,7 +29,9 @@ const PopularStudySetsGrid = () => {
 const PopularStudySets = () => {
   return (
     <div>
-      <h2 className="mb-6 text-2xl font-bold">Popular study sets</h2>
+      <h2 className="mb-8 text-3xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-500 dark:from-blue-400 dark:to-indigo-300">
+        Popular Study Sets
+      </h2>
       <Suspense fallback={<StudySetSkeletonGrid />}>
         <PopularStudySetsGrid />
       </Suspense>

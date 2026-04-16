@@ -20,6 +20,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -32,6 +35,7 @@ public class ClassServiceImpl implements ClassService {
     private final StudySetRepository studySetRepo;
     private final AssignmentSubmissionRepository submissionRepo;
     private final NotificationService notificationService;
+    private final SimpMessagingTemplate messagingTemplate;
 
 
 
@@ -190,6 +194,18 @@ public class ClassServiceImpl implements ClassService {
                 req.getUserId(), "Lời mời tham gia lớp học",
                 "Bạn đã được thêm vào lớp " + c.getName(),
                 NotificationType.ADDED_TO_CLASS, c.getId(), "CLASS");
+
+        // Gửi thông báo qua WebSocket
+        messagingTemplate.convertAndSend(
+                "/topic/class-notifications/" + req.getUserId(),
+                Map.of(
+                        "type", "ADDED_TO_CLASS",
+                        "message", "Bạn đã được thêm vào lớp " + c.getName(),
+                        "classId", c.getId(),
+                        "className", c.getName()
+                )
+        );
+
         return "Thêm thành viên thành công";
     }
 

@@ -35,7 +35,9 @@ const UserStudySets = ({
 }) => {
   return (
     <>
-      <h1 className="mb-6 text-2xl font-bold">{title}</h1>
+      <h1 className="mb-8 text-3xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-rose-500 dark:from-orange-400 dark:to-rose-400">
+        {title}
+      </h1>
       <Suspense fallback={<StudySetSkeletonGrid />}>
         <UserStudySetsGrid userId={userId} />
       </Suspense>

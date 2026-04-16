@@ -20,7 +20,7 @@ export async function uploadObject(file: File) {
 
   const input: PutObjectCommandInput = {
     Body: file,
-    Bucket: "quizletv2",
+    Bucket: "quizzlet",
     Key: objectName,
   };
 

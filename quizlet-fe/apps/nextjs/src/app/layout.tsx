@@ -20,6 +20,7 @@ import LoginFormDialog from "~/components/layout/login-form-dialog";
 import FolderDialogProvider from "~/contexts/folder-dialog-context";
 import SignInDialogProvider from "~/contexts/sign-in-dialog-context";
 import { LoginDialogProvider } from "~/contexts/login-dialog-context";
+import WebSocketProvider from "~/components/shared/websocket-provider";
 import { env } from "~/env";
 
 export const metadata: Metadata = {
@@ -28,13 +29,13 @@ export const metadata: Metadata = {
       ? "https://turbo.t3.gg"
       : "http://localhost:3000",
   ),
-  title: "Quizlet Clone",
-  description: "Quizlet clone application built with turbo.t3.gg",
+  title: "Quizzlet",
+  description: "Quizzlet application",
   openGraph: {
-    title: "Quizlet Clone",
-    description: "Quizlet clone application built with turbo.t3.gg",
+    title: "Quizzlet",
+    description: "Quizzlet application",
     url: "https://create-t3-turbo.vercel.app",
-    siteName: "Quizlet Clone",
+    siteName: "Quizzlet",
   },
 };
 
@@ -65,6 +66,7 @@ export default function RootLayout(props: { children: React.ReactNode }) {
                     <main className="min-h-[calc(100vh-65px)]">
                       {props.children}
                     </main>
+                    <WebSocketProvider />
                     <Toaster richColors />
                     <CreateActivity />
                     <CreateFolderDialog />

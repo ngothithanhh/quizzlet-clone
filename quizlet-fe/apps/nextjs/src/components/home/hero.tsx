@@ -1,152 +1,188 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@acme/ui/button";
+import { motion } from "framer-motion";
+
+const fadeIn = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } }
+};
+
+const staggerContainer = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.2
+    }
+  }
+};
+
+const features = [
+  {
+    icon: "📚",
+    title: "Multiple Learning Modes",
+    desc: "Flashcards, Learn mode, Memory game, and Test mode to keep your studying fresh and engaging.",
+    color: "from-blue-500 to-indigo-500",
+    shadow: "shadow-blue-500/20"
+  },
+  {
+    icon: "🎯",
+    title: "Smart Spaced Repetition",
+    desc: "Optimize your learning with scientifically-backed spaced repetition algorithm.",
+    color: "from-purple-500 to-pink-500",
+    shadow: "shadow-purple-500/20"
+  },
+  {
+    icon: "👥",
+    title: "Collaboration",
+    desc: "Create study groups, share study sets, and learn together with friends.",
+    color: "from-pink-500 to-rose-500",
+    shadow: "shadow-pink-500/20"
+  },
+  {
+    icon: "📊",
+    title: "Track Progress",
+    desc: "Monitor your learning progress with detailed statistics and insights.",
+    color: "from-cyan-500 to-blue-500",
+    shadow: "shadow-cyan-500/20"
+  }
+];
 
 export default function Hero() {
   return (
-    <div className="mb-16">
-      {/* Hero Section */}
-      <div className="min-h-[600px] bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 relative overflow-hidden flex items-center justify-center">
-        {/* Decorative elements */}
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute -top-40 -right-40 w-80 h-80 bg-white/10 rounded-full blur-3xl"></div>
-          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-white/10 rounded-full blur-3xl"></div>
+    <div className="flex flex-col min-h-screen">
+      {/* Premium Hero Section */}
+      <section className="relative min-h-[85vh] flex items-center justify-center overflow-hidden bg-[#06102b]">
+        {/* Dynamic Background Elements */}
+        <div className="absolute inset-0 w-full h-full">
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/30 rounded-full blur-[128px] animate-pulse mix-blend-screen" style={{ animationDuration: '8s' }} />
+          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-cyan-500/30 rounded-full blur-[128px] animate-pulse mix-blend-screen" style={{ animationDuration: '10s', animationDelay: '1s' }} />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-indigo-600/10 rounded-full blur-[100px] mix-blend-screen" />
+          
+          {/* Subtle line overlays */}
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)]" />
         </div>
 
         {/* Content */}
-        <div className="relative z-10 container px-4 py-20">
-          <div className="max-w-3xl mx-auto text-center">
-            {/* Logo */}
-            <div className="mb-6 flex justify-center">
-              <Image src="/logo.svg" alt="logo" width={180} height={40} className="drop-shadow-lg" />
-            </div>
+        <div className="relative z-10 container px-4 sm:px-6 mx-auto">
+          <motion.div 
+            initial="hidden"
+            animate="visible"
+            variants={staggerContainer}
+            className="max-w-4xl mx-auto text-center flex flex-col items-center"
+          >
+            {/* Animated Logo Container */}
+            <motion.div variants={fadeIn} className="mb-10 relative group">
+              <div className="absolute -inset-2 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-lg blur opacity-40 group-hover:opacity-75 transition duration-1000 group-hover:duration-200" />
+              <div className="relative bg-black/50 px-8 py-3 rounded-xl border border-white/10 backdrop-blur-xl">
+                <span className="text-4xl font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-indigo-200 drop-shadow-2xl uppercase">
+                  Quizzlet
+                </span>
+              </div>
+            </motion.div>
 
             {/* Main Heading */}
-            <h1 className="mb-6 text-4xl md:text-5xl lg:text-6xl font-black text-white leading-tight">
-              Learn Anything,
-              <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-200 to-cyan-100">
+            <motion.h1 variants={fadeIn} className="mb-6 text-5xl sm:text-6xl md:text-7xl font-extrabold tracking-tight text-white leading-[1.1]">
+              Learn Anything,<br/>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 drop-shadow-sm">
                 Memorize Everything
               </span>
-            </h1>
+            </motion.h1>
 
             {/* Subheading */}
-            <p className="mb-12 text-lg md:text-xl text-white/90 max-w-2xl mx-auto">
-              Master any subject with interactive flashcards, interactive learning modes, and spaced repetition. Join millions of students learning smarter.
-            </p>
+            <motion.p variants={fadeIn} className="mb-10 text-lg sm:text-xl md:text-2xl text-gray-400 max-w-2xl mx-auto font-light leading-relaxed">
+              Master any subject with interactive flashcards, dynamic learning modes, and smart spaced repetition. Join millions of students learning smarter.
+            </motion.p>
 
-            {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
+            {/* Premium CTA Buttons */}
+            <motion.div variants={fadeIn} className="flex flex-col sm:flex-row gap-5 justify-center mb-20 w-full sm:w-auto">
               <Button
                 size="lg"
-                className="bg-white text-indigo-600 hover:bg-gray-100 font-semibold px-8"
+                className="bg-white text-black hover:bg-gray-100 font-semibold px-10 py-6 text-lg rounded-full shadow-[0_0_40px_rgba(255,255,255,0.3)] transition-all hover:scale-105"
                 asChild
               >
-                <Link href="/latest">
-                  Start Learning
-                </Link>
+                <Link href="/latest">Start Learning</Link>
               </Button>
               <Button
                 size="lg"
                 variant="outline"
-                className="border-white text-white hover:bg-white/20 hover:text-white font-semibold px-8"
+                className="border-white/20 text-white hover:bg-white/10 font-semibold px-10 py-6 text-lg rounded-full backdrop-blur-md transition-all hover:scale-105"
                 asChild
               >
-                <Link href="/create-set">
-                  Create Study Set
-                </Link>
+                <Link href="/create-set">Create Study Set</Link>
               </Button>
-            </div>
+            </motion.div>
 
-            {/* Stats */}
-            <div className="grid grid-cols-3 gap-6 md:gap-12 text-white">
-              <div>
-                <div className="text-3xl md:text-4xl font-bold">10M+</div>
-                <div className="text-sm md:text-base text-white/80">Active Learners</div>
-              </div>
-              <div>
-                <div className="text-3xl md:text-4xl font-bold">50M+</div>
-                <div className="text-sm md:text-base text-white/80">Study Sets</div>
-              </div>
-              <div>
-                <div className="text-3xl md:text-4xl font-bold">4.8★</div>
-                <div className="text-sm md:text-base text-white/80">User Rating</div>
-              </div>
-            </div>
-          </div>
+            {/* Stats configured with Glassmorphism */}
+            <motion.div variants={fadeIn} className="inline-grid grid-cols-1 sm:grid-cols-3 gap-8 md:gap-16 relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-pink-500/10 blur-3xl -z-10 rounded-full" />
+              {[
+                { value: "10M+", label: "Active Learners" },
+                { value: "50M+", label: "Study Sets" },
+                { value: "4.8★", label: "User Rating" }
+              ].map((stat, i) => (
+                <div key={i} className="flex flex-col items-center p-6 rounded-3xl bg-white/5 border border-white/5 backdrop-blur-md hover:bg-white/10 transition-colors">
+                  <div className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white to-gray-400 mb-2">{stat.value}</div>
+                  <div className="text-sm md:text-base font-semibold text-gray-400 uppercase tracking-wider">{stat.label}</div>
+                </div>
+              ))}
+            </motion.div>
+          </motion.div>
         </div>
-      </div>
+      </section>
 
       {/* Features Section */}
-      <div className="container px-4 py-16 md:py-24">
-        <div className="max-w-4xl mx-auto">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-16 text-gray-900">
-            Why Choose Quizlet Clone?
-          </h2>
+      <section className="py-24 relative overflow-hidden bg-gradient-to-b from-[#06102b] via-[#eef2ff] to-[#f8fafc] dark:from-[#06102b] dark:via-[#091530] dark:to-[#020617]">
+        {/* Decorative elements for the bottom section */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <div className="absolute top-0 w-full h-32 bg-gradient-to-b from-[#06102b] to-transparent z-10" />
+          <div className="absolute -left-40 top-40 w-96 h-96 bg-blue-400/10 dark:bg-blue-600/10 rounded-full blur-3xl" />
+          <div className="absolute right-0 bottom-0 w-full h-[500px] bg-indigo-200/20 dark:bg-indigo-900/10 rounded-[100%] blur-3xl translate-y-1/2" />
+        </div>
 
-          <div className="grid md:grid-cols-2 gap-8">
-            {/* Feature 1 */}
-            <div className="flex gap-4">
-              <div className="flex-shrink-0">
-                <div className="flex items-center justify-center h-12 w-12 rounded-lg bg-indigo-100">
-                  <span className="text-2xl">📚</span>
-                </div>
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Multiple Learning Modes</h3>
-                <p className="text-gray-600">
-                  Flashcards, Learn mode, Memory game, and Test mode to keep your studying fresh and engaging.
-                </p>
-              </div>
-            </div>
+        <div className="container px-4 sm:px-6 mx-auto relative z-20">
+          <motion.div 
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 0.7 }}
+            className="text-center max-w-3xl mx-auto mb-20"
+          >
+            <h2 className="text-4xl md:text-5xl font-bold mb-6 text-foreground tracking-tight">
+              Why Choose <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-purple-500">Quizzlet?</span>
+            </h2>
+            <p className="text-lg text-muted-foreground">
+              Experience the next generation of digital learning platforms, built for maximum retention and engagement.
+            </p>
+          </motion.div>
 
-            {/* Feature 2 */}
-            <div className="flex gap-4">
-              <div className="flex-shrink-0">
-                <div className="flex items-center justify-center h-12 w-12 rounded-lg bg-purple-100">
-                  <span className="text-2xl">🎯</span>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8 max-w-7xl mx-auto">
+            {features.map((feature, idx) => (
+              <motion.div
+                key={idx}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-50px" }}
+                transition={{ duration: 0.5, delay: idx * 0.1 }}
+                whileHover={{ y: -10 }}
+                className="group relative h-full rounded-3xl bg-white/70 dark:bg-slate-900/40 border border-white/20 dark:border-white/5 p-8 shadow-xl backdrop-blur-md hover:shadow-2xl transition-all duration-300"
+              >
+                <div className={`absolute inset-0 bg-gradient-to-br ${feature.color} opacity-0 group-hover:opacity-[0.05] transition-opacity rounded-3xl`} />
+                <div className={`w-16 h-16 rounded-2xl mb-6 flex items-center justify-center text-3xl bg-gradient-to-br ${feature.color} shadow-lg ${feature.shadow} transform group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300`}>
+                  {feature.icon}
                 </div>
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Smart Spaced Repetition</h3>
-                <p className="text-gray-600">
-                  Optimize your learning with scientifically-backed spaced repetition algorithm.
+                <h3 className="text-xl font-bold text-card-foreground mb-3">{feature.title}</h3>
+                <p className="text-muted-foreground leading-relaxed">
+                  {feature.desc}
                 </p>
-              </div>
-            </div>
-
-            {/* Feature 3 */}
-            <div className="flex gap-4">
-              <div className="flex-shrink-0">
-                <div className="flex items-center justify-center h-12 w-12 rounded-lg bg-pink-100">
-                  <span className="text-2xl">👥</span>
-                </div>
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Collaboration</h3>
-                <p className="text-gray-600">
-                  Create study groups, share study sets, and learn together with friends.
-                </p>
-              </div>
-            </div>
-
-            {/* Feature 4 */}
-            <div className="flex gap-4">
-              <div className="flex-shrink-0">
-                <div className="flex items-center justify-center h-12 w-12 rounded-lg bg-cyan-100">
-                  <span className="text-2xl">📊</span>
-                </div>
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Track Progress</h3>
-                <p className="text-gray-600">
-                  Monitor your learning progress with detailed statistics and insights.
-                </p>
-              </div>
-            </div>
+              </motion.div>
+            ))}
           </div>
         </div>
-      </div>
+      </section>
     </div>
   );
 }

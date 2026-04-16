@@ -28,7 +28,9 @@ const LatestStudySetsGrid = () => {
 const LatestStudySets = () => {
   return (
     <div className="mt-8">
-      <h2 className="mb-6 text-2xl font-bold">Latest study sets</h2>
+      <h2 className="mb-8 text-3xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-teal-500 to-emerald-500 dark:from-teal-400 dark:to-emerald-300">
+        Latest Study Sets
+      </h2>
       <Suspense fallback={<StudySetSkeletonGrid />}>
         <LatestStudySetsGrid />
       </Suspense>

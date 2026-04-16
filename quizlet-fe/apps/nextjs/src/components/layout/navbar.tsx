@@ -24,7 +24,9 @@ const Navbar = () => {
           href="/"
           className="hidden h-full px-2 leading-[4rem] md:flex md:items-center"
         >
-          <Image src="/logo.svg" alt="logo" width={110} height={24} />
+          <span className="text-2xl font-black tracking-tight text-indigo-600 dark:text-indigo-400">
+            Quizzlet
+          </span>
         </Link>
         <Link
           href={isLoggedIn ? "/latest" : "/"}
