@@ -15,6 +15,7 @@ interface ClassroomResponse {
   memberCount?: number;
   assignments?: unknown[];
   isCreator?: boolean;
+  currentUserRole?: "TEACHER" | "STUDENT" | null;
 }
 
 interface ClassCardProps {
@@ -50,14 +51,34 @@ export default function ClassCard({ classroom, onCopyCode }: ClassCardProps) {
           <span className="text-white text-xl font-black">{initial}</span>
         </div>
 
-        {/* Creator badge */}
-        {classroom.isCreator && (
-          <div className="absolute top-3 right-3">
-            <span className="flex items-center gap-1 text-[10px] font-semibold text-amber-100 bg-amber-900/40 backdrop-blur-sm border border-amber-400/30 px-2 py-0.5 rounded-full">
-              <Crown size={9} /> Giáo viên
-            </span>
-          </div>
-        )}
+        {/* Role badge */}
+        {(() => {
+          if (classroom.isCreator) {
+            return (
+              <div className="absolute top-3 right-3">
+                <span className="flex items-center gap-1 text-[10px] font-semibold text-amber-100 bg-amber-900/40 backdrop-blur-sm border border-amber-400/30 px-2 py-0.5 rounded-full">
+                  <Crown size={9} /> Chủ lớp
+                </span>
+              </div>
+            );
+          }
+          if (classroom.currentUserRole === "TEACHER") {
+            return (
+              <div className="absolute top-3 right-3">
+                <span className="flex items-center gap-1 text-[10px] font-semibold text-blue-100 bg-blue-900/40 backdrop-blur-sm border border-blue-400/30 px-2 py-0.5 rounded-full">
+                  <BookMarked size={9} /> Giáo viên
+                </span>
+              </div>
+            );
+          }
+          return (
+            <div className="absolute top-3 right-3">
+              <span className="flex items-center gap-1 text-[10px] font-semibold text-green-100 bg-green-900/40 backdrop-blur-sm border border-green-400/30 px-2 py-0.5 rounded-full">
+                <Users size={9} /> Học sinh
+              </span>
+            </div>
+          );
+        })()}
       </div>
 
       {/* Content */}
