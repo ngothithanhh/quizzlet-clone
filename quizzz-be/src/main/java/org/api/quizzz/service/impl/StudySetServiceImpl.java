@@ -76,7 +76,25 @@ public class StudySetServiceImpl implements StudySetService {
                 .build();
 
         StudySet saved = studySetRepository.save(studySet);
-        return toResponse(saved, false);
+
+        // Lưu flashcards
+        if (request.getFlashcards() != null) {
+            for (int i = 0; i < request.getFlashcards().size(); i++) {
+                var item = request.getFlashcards().get(i);
+                if (item.getTerm() == null || item.getTerm().isBlank()) continue;
+                var fc = org.api.quizzz.entity.Flashcard.builder()
+                        .studySet(saved)
+                        .term(item.getTerm())
+                        .definition(item.getDefinition() != null ? item.getDefinition() : "")
+                        .imageUrl(item.getImageUrl())
+                        .audioUrl(item.getAudioUrl())
+                        .position(item.getPosition() != null ? item.getPosition() : i)
+                        .build();
+                flashcardRepository.save(fc);
+            }
+        }
+
+        return toResponse(saved, true);
     }
 
     @Override
@@ -123,8 +141,57 @@ public class StudySetServiceImpl implements StudySetService {
         if (request.getIsPublic() != null) {
             studySet.setIsPublic(request.getIsPublic());
         }
+        studySetRepository.save(studySet);
 
-        return toResponse(studySetRepository.save(studySet), false);
+        // Sync flashcards
+        if (request.getFlashcards() != null) {
+            // ID của flashcard trong request (chỉ những cái có id hợp lệ)
+            java.util.Set<Long> incomingIds = request.getFlashcards().stream()
+                    .map(StudySetRequest.FlashcardItem::getId)
+                    .filter(fid -> fid != null)
+                    .collect(java.util.stream.Collectors.toSet());
+
+            // Xóa những flashcard không còn trong request
+            List<org.api.quizzz.entity.Flashcard> existing =
+                    flashcardRepository.findByStudySetIdOrderByPositionAsc(id);
+            for (var fc : existing) {
+                if (!incomingIds.contains(fc.getId())) {
+                    flashcardRepository.delete(fc);
+                }
+            }
+
+            // Upsert flashcards
+            for (int i = 0; i < request.getFlashcards().size(); i++) {
+                var item = request.getFlashcards().get(i);
+                if (item.getTerm() == null || item.getTerm().isBlank()) continue;
+                int pos = item.getPosition() != null ? item.getPosition() : i;
+
+                if (item.getId() != null) {
+                    // Update existing
+                    flashcardRepository.findById(item.getId()).ifPresent(fc -> {
+                        fc.setTerm(item.getTerm());
+                        fc.setDefinition(item.getDefinition() != null ? item.getDefinition() : "");
+                        fc.setImageUrl(item.getImageUrl());
+                        fc.setAudioUrl(item.getAudioUrl());
+                        fc.setPosition(pos);
+                        flashcardRepository.save(fc);
+                    });
+                } else {
+                    // Insert new
+                    var fc = org.api.quizzz.entity.Flashcard.builder()
+                            .studySet(studySet)
+                            .term(item.getTerm())
+                            .definition(item.getDefinition() != null ? item.getDefinition() : "")
+                            .imageUrl(item.getImageUrl())
+                            .audioUrl(item.getAudioUrl())
+                            .position(pos)
+                            .build();
+                    flashcardRepository.save(fc);
+                }
+            }
+        }
+
+        return toResponse(studySet, true);
     }
 
     @Override
