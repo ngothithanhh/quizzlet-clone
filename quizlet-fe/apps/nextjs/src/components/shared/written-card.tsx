@@ -36,7 +36,7 @@ const WrittenCard = forwardRef<HTMLInputElement, WrittenCardProps>(
                 type="text"
                 {...props}
                 readOnly={!!userAnswer}
-                value={userAnswer}
+                {...(userAnswer !== undefined ? { value: userAnswer } : {})}
                 className={cn({
                   "border-green-600 bg-green-600/10":
                     userAnswer && userAnswer === definition,
@@ -45,7 +45,7 @@ const WrittenCard = forwardRef<HTMLInputElement, WrittenCardProps>(
                 })}
               />
             </FormItem>
-            {userAnswer !== definition && (
+            {userAnswer !== undefined && userAnswer !== definition && (
               <Alert className="mt-4 border-green-600 text-green-600">
                 <Check size={16} className="text-green-600" />
                 <AlertTitle>{definition}</AlertTitle>

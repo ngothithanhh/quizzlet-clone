@@ -64,10 +64,10 @@ const MultipleChoiceCard = forwardRef<
                 <Input
                   ref={ref}
                   id={`card-${index}-choice-${answerIndex}`}
-                  name="multiple-choice"
                   type="radio"
                   className="peer hidden"
                   {...props}
+                  name={`multiple-choice-${index}`}
                   value={answer}
                 />
                 <Card
