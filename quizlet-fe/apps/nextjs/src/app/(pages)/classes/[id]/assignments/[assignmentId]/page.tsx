@@ -313,12 +313,14 @@ function TeacherView({ assignment, classId, submissions, loadingSubmissions, aId
   const handleUpdate = (e: React.FormEvent) => {
     e.preventDefault();
     if (!editTitle.trim()) return;
+    const tl = editLimit ? parseInt(editLimit, 10) : null;
+    const ma = editMaxAttempts ? parseInt(editMaxAttempts, 10) : null;
     updateMutation.mutate({
       assignmentId: aId,
       title: editTitle.trim(),
       description: editDesc.trim() || undefined,
-      timeLimitMinutes: editLimit ? parseInt(editLimit) : undefined,
-      maxAttempts: editMaxAttempts ? parseInt(editMaxAttempts) : undefined,
+      timeLimitMinutes: (tl && !isNaN(tl)) ? tl : null,
+      maxAttempts: (ma && !isNaN(ma)) ? ma : null,
       allowReviewAnswers: editAllowReview,
     });
   };

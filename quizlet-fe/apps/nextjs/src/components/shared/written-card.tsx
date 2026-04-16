@@ -34,10 +34,9 @@ const WrittenCard = forwardRef<HTMLInputElement, WrittenCardProps>(
               <Input
                 ref={ref}
                 type="text"
-                {...props}
-                readOnly={!!userAnswer}
                 {...(userAnswer !== undefined ? { value: userAnswer } : {})}
-                className={cn({
+                {...props}
+                className={cn(props.className, {
                   "border-green-600 bg-green-600/10":
                     definition && userAnswer && userAnswer === definition,
                   "border-red-600 bg-red-600/10":
