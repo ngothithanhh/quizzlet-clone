@@ -46,7 +46,7 @@ export default function AssignmentDetailPage() {
   const aId = Number(assignmentId);
 
   const { data: classroom } = api.classroom.byId.useQuery({ id: Number(classId) });
-  const { data: assignment, isLoading: loadingAssignment } = api.classroom.assignmentById.useQuery({ assignmentId: aId });
+  const { data: assignment, isLoading: loadingAssignment, refetch: refetchAssignment } = api.classroom.assignmentById.useQuery({ assignmentId: aId });
   const { data: myAttempts = [], isLoading: loadingAttempts, refetch: refetchAttempts } = api.classroom.myAttempts.useQuery({ assignmentId: aId });
   const isTeacher = classroom?.isCreator || classroom?.currentUserRole === "TEACHER";
 
@@ -84,6 +84,8 @@ export default function AssignmentDetailPage() {
     onSuccess: () => {
       toast.success("Nộp bài thành công!");
       void refetchAttempts();
+      // Refetch assignment to get latest allowReviewAnswers from server
+      void refetchAssignment();
     },
     onError: (err) => toast.error(err.message ?? "Nộp bài thất bại"),
   });
@@ -444,7 +446,7 @@ function ResultView({ submittedData, assignment, onBack, classId }: any) {
           <div className="text-5xl font-black text-indigo-600 dark:text-indigo-400 mb-2 mt-4">{submittedData.score}%</div>
           <p className="text-gray-500 text-sm mb-8">{submittedData.correctAnswers}/{submittedData.totalQuestions} câu đúng</p>
 
-          {submittedData.allowReview && submittedData.answerDetails.length > 0 && (
+          {(assignment?.allowReviewAnswers !== false) && submittedData.answerDetails.length > 0 && (
             <div className="text-left space-y-2 mt-4 pt-6 border-t border-gray-100 dark:border-gray-800">
               <h3 className="font-bold text-sm text-gray-800 dark:text-gray-200 mb-3">Chi tiết từng câu</h3>
               {submittedData.answerDetails.map((a: any, i: number) => (
@@ -461,7 +463,7 @@ function ResultView({ submittedData, assignment, onBack, classId }: any) {
               ))}
             </div>
           )}
-          {!submittedData.allowReview && (
+          {assignment?.allowReviewAnswers === false && (
             <p className="text-xs text-gray-400 mt-4">Giáo viên không cho phép xem đáp án chi tiết.</p>
           )}
         </div>

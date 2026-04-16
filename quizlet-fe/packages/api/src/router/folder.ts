@@ -43,7 +43,7 @@ export const folderRouter = {
     }),
 
   /** GET /api/folders/:id */
-  bySlug: publicProcedure
+  bySlug: protectedProcedure
     .input(z.object({ slug: z.string().or(z.number()) }))
     .query(async ({ input, ctx }) => {
       const data = await beGet<any>(`/api/folders/${input.slug}`, ctx.token);
