@@ -30,7 +30,8 @@ const TestMode = () => {
   const [answer, setAnswer] = useState<Answers | undefined>();
   const [hard, setHard] = useState<number>(0);
 
-  const cardCount = Object.values(test).flatMap((e) => e).length;
+  const cardCount =
+    test.multipleChoice.length + test.written.length + test.trueOrFalse.length;
 
   const onSubmit = (answer: Answers) => {
     setAnswer(answer);

@@ -176,7 +176,6 @@ export const studySetRouter = {
           term: string;
           definition: string;
           position: number;
-          studySetId: number;
         }[];
         multipleChoice: {
           id: number;

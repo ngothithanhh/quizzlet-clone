@@ -9,28 +9,35 @@ import MultipleChoiceCard from "../shared/multiple-choice-card";
 import TrueFalseCard from "../shared/true-false-card";
 import WrittenCard from "../shared/written-card";
 
-const flashcard = z.object({
+const baseFlashcard = z.object({
   id: z.number(),
   term: z.string(),
   definition: z.string(),
-  // Backend returns numeric IDs for studySetId.
-  studySetId: z.number(),
-  userAnswer: z.string().min(1),
+});
+
+const written = baseFlashcard.extend({
+  // Server includes position for written cards.
   position: z.number(),
+  userAnswer: z.string().min(1),
 });
 
-const trueOrFalse = flashcard.extend({
+const trueOrFalse = baseFlashcard.extend({
   answer: z.string(),
+  userAnswer: z.string().min(1),
 });
 
-const multipleChoice = flashcard.extend({
+const multipleChoice = baseFlashcard.extend({
+  // Server includes these fields only for multiple choice cards.
+  position: z.number(),
+  studySetId: z.number(),
   answers: z.array(z.string()),
+  userAnswer: z.string().min(1),
 });
 
 const testSchema = z.object({
   trueOrFalse: z.array(trueOrFalse),
   multipleChoice: z.array(multipleChoice),
-  written: z.array(flashcard),
+  written: z.array(written),
 });
 
 interface TestFormProps {
