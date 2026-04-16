@@ -19,6 +19,9 @@ import { Badge } from "@acme/ui/badge";
 import { Button } from "@acme/ui/button";
 import { toast } from "@acme/ui/toast";
 
+import MultipleChoiceCard from "~/components/shared/multiple-choice-card";
+import TrueFalseCard from "~/components/shared/true-false-card";
+import WrittenCard from "~/components/shared/written-card";
 import { api } from "~/trpc/react";
 import { useAuth } from "~/contexts/auth-context";
 
@@ -105,9 +108,18 @@ export default function AssignmentDetailPage() {
   }, [timeLeft, submitted]);
 
   const handleAnswer = useCallback((flashcardId: number, term: string, userAnswer: string, correctAnswer: string) => {
+    // Case-insensitive + trim whitespace comparison
     const isCorrect = userAnswer.trim().toLowerCase() === correctAnswer.trim().toLowerCase();
     setAnswers((prev) => ({ ...prev, [flashcardId]: { userAnswer, correctAnswer, isCorrect, term } }));
   }, []);
+
+  // Wrapper for TrueFalse: value is "true"|"false" radio string
+  const handleTFAnswer = useCallback((card: any, radioValue: string) => {
+    // "true" means student thinks the displayed answer IS correct (answer === definition)
+    // The correct radio choice is "true" if card.answer === card.definition, else "false"
+    const correctRadio = card.answer === card.definition ? "true" : "false";
+    handleAnswer(card.id, card.term, radioValue, correctRadio);
+  }, [handleAnswer]);
 
   const handleSubmit = useCallback(async (autoSubmit = false) => {
     if (submitted) return;
@@ -294,9 +306,16 @@ export default function AssignmentDetailPage() {
           </div>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-6">
           {allCards.map((card, index) => (
-            <QuestionCard key={card.id} index={index} card={card} userAnswer={answers[card.id]?.userAnswer} onAnswer={handleAnswer} />
+            <AssignmentQuestionCard
+              key={`${card.type}-${card.id}-${index}`}
+              index={index}
+              card={card}
+              userAnswer={answers[card.id]?.userAnswer}
+              onAnswer={handleAnswer}
+              onTFAnswer={handleTFAnswer}
+            />
           ))}
         </div>
       </div>
@@ -428,45 +447,66 @@ function TeacherSubmissionRow({ sub, pct, details }: any) {
   );
 }
 
-function QuestionCard({ index, card, userAnswer, onAnswer }: { index: number; card: any; userAnswer?: string; onAnswer: (id: number, term: string, userAnswer: string, correctAnswer: string) => void; }) {
+function AssignmentQuestionCard({
+  index, card, userAnswer, onAnswer, onTFAnswer,
+}: {
+  index: number;
+  card: any;
+  userAnswer?: string;
+  onAnswer: (id: number, term: string, userAnswer: string, correctAnswer: string) => void;
+  onTFAnswer: (card: any, radioValue: string) => void;
+}) {
+  const qNum = `Câu ${index + 1}`;
+
   if (card.type === "tf") {
+    // card.answer = definition displayed (may be correct or wrong)
+    // card.definition = the real definition
+    const correctRadio = card.answer === card.definition ? "true" : "false";
     return (
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 shadow-sm">
-        <p className="text-xs text-gray-400 mb-2">Câu {index + 1} • Đúng / Sai</p>
-        <p className="font-semibold text-gray-900 dark:text-white mb-4">{card.term}</p>
-        <div className="flex gap-3">
-          {["True", "False"].map((opt) => (
-            <button key={opt} onClick={() => onAnswer(card.id, card.term, opt, card.answer)}
-              className={`flex-1 py-2.5 rounded-xl border text-sm font-semibold transition-all ${userAnswer === opt ? "bg-indigo-600 text-white border-indigo-600" : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-indigo-300"}`}>
-              {opt === "True" ? "✅ Đúng" : "❌ Sai"}
-            </button>
-          ))}
-        </div>
+      <div>
+        <p className="text-xs text-gray-400 mb-2 font-medium">{qNum} • Đúng / Sai</p>
+        <TrueFalseCard
+          index={index}
+          term={card.term}
+          answer={card.answer}        // displayed definition (may be wrong)
+          definition={card.answer === card.definition ? card.definition : undefined} // tip: pass definition only when correct so TrueFalseCard colours work
+          userAnswer={userAnswer}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => onTFAnswer(card, e.target.value)}
+        />
       </div>
     );
   }
+
   if (card.type === "mc") {
     return (
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 shadow-sm">
-        <p className="text-xs text-gray-400 mb-2">Câu {index + 1} • Nhiều lựa chọn</p>
-        <p className="font-semibold text-gray-900 dark:text-white mb-4">{card.term}</p>
-        <div className="grid grid-cols-2 gap-2">
-          {(card.answers ?? []).map((opt: string) => (
-            <button key={opt} onClick={() => onAnswer(card.id, card.term, opt, card.definition)}
-              className={`py-2.5 px-3 rounded-xl border text-sm font-medium text-left transition-all ${userAnswer === opt ? "bg-indigo-600 text-white border-indigo-600" : "border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-indigo-300"}`}>
-              {opt}
-            </button>
-          ))}
-        </div>
+      <div>
+        <p className="text-xs text-gray-400 mb-2 font-medium">{qNum} • Chọn đáp án đúng</p>
+        <MultipleChoiceCard
+          index={index}
+          term={card.term}
+          answers={card.answers ?? []}
+          definition={card.definition}
+          userAnswer={userAnswer}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+            onAnswer(card.id, card.term, e.target.value, card.definition)
+          }
+        />
       </div>
     );
   }
+
+  // written
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 shadow-sm">
-      <p className="text-xs text-gray-400 mb-2">Câu {index + 1} • Tự điền</p>
-      <p className="font-semibold text-gray-900 dark:text-white mb-3">{card.term}</p>
-      <input type="text" value={userAnswer ?? ""} onChange={(e) => onAnswer(card.id, card.term, e.target.value, card.definition)}
-        placeholder="Nhập câu trả lời..." className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-sm outline-none focus:border-indigo-400 transition-colors" />
+    <div>
+      <p className="text-xs text-gray-400 mb-2 font-medium">{qNum} • Tự điền</p>
+      <WrittenCard
+        term={card.term}
+        definition={card.definition}
+        userAnswer={userAnswer ?? ""}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+          onAnswer(card.id, card.term, e.target.value, card.definition)
+        }
+      />
     </div>
   );
 }
