@@ -3,13 +3,15 @@ import { z } from "zod";
 
 import { beDelete, beGet, bePost, bePut } from "../lib/beClient";
 import { protectedProcedure, publicProcedure } from "../trpc";
+import { mapToFrontendStudySet } from "./studySet";
+import type { StudySetResponse } from "./studySet";
 
 export interface FolderResponse {
   id: number;
   name: string;
   description?: string;
   userId: number;
-  studySets?: unknown[];
+  studySets: StudySetResponse[];
   slug: string;
   studySetsCount: number;
 }
@@ -18,6 +20,7 @@ export const mapToFrontendFolder = (beFolder: any): FolderResponse => ({
   ...beFolder,
   userId: beFolder.userId || 1, // Fallback if missing
   slug: beFolder.id ? beFolder.id.toString() : "",
+  studySets: (beFolder.studySets ?? []).map(mapToFrontendStudySet),
   studySetsCount: beFolder.studySets ? beFolder.studySets.length : 0,
 });
 

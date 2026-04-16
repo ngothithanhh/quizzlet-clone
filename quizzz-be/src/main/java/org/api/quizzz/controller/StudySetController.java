@@ -43,15 +43,15 @@ public class StudySetController {
     }
 
     /**
-     * 2.3 Tìm kiếm StudySet public của toàn hệ thống
+     * 2.3 Tìm kiếm StudySet public + riêng tư của user hiện tại
      * GET /api/studysets?keyword=english
-     * - Không truyền keyword: trả toàn bộ StudySet public
-     * - Có keyword: lọc theo title
      */
     @GetMapping
     public ResponseEntity<List<StudySetResponse>> getAll(
             @RequestParam(required = false) String keyword) {
-        return ResponseEntity.ok(studySetService.getAll(keyword));
+        Long currentUserId = null;
+        try { currentUserId = SecurityUtils.getCurrentUserId(); } catch (Exception ignored) {}
+        return ResponseEntity.ok(studySetService.getAll(keyword, currentUserId));
     }
 
     /**

@@ -12,8 +12,8 @@ public interface StudySetService {
     /** Lấy tất cả StudySet (kể cả private) của user hiện tại */
     List<StudySetResponse> getMyStudySets(Long userId);
 
-    /** Tìm kiếm toàn bộ StudySet public trong hệ thống */
-    List<StudySetResponse> getAll(String keyword);
+    /** Tìm kiếm StudySet public + riêng tư của user hiện tại */
+    List<StudySetResponse> getAll(String keyword, Long currentUserId);
 
     StudySetResponse updateStudySet(Long id, StudySetRequest request);
     /** Cập nhật chỉ trường isPublic mà không cần gửi toàn bộ request */

@@ -114,18 +114,30 @@ public class StudySetServiceImpl implements StudySetService {
     }
 
     @Override
-    public List<StudySetResponse> getAll(String keyword) {
-        List<StudySet> studySets;
+    public List<StudySetResponse> getAll(String keyword, Long currentUserId) {
+        List<StudySet> publicSets;
 
         if (keyword != null && !keyword.isBlank()) {
-            // Tìm kiếm public theo keyword
-            studySets = studySetRepository.findByTitleContainingIgnoreCaseAndIsPublicTrue(keyword.trim());
+            publicSets = studySetRepository.findByTitleContainingIgnoreCaseAndIsPublicTrue(keyword.trim());
         } else {
-            // Lấy toàn bộ StudySet public của hệ thống
-            studySets = studySetRepository.findByIsPublicTrue();
+            publicSets = studySetRepository.findByIsPublicTrue();
         }
 
-        return studySets.stream()
+        // Merge owner's private sets so they can find their own
+        java.util.LinkedHashMap<Long, StudySet> merged = new java.util.LinkedHashMap<>();
+        for (StudySet s : publicSets) merged.put(s.getId(), s);
+
+        if (currentUserId != null) {
+            List<StudySet> ownSets;
+            if (keyword != null && !keyword.isBlank()) {
+                ownSets = studySetRepository.findByUserIdAndTitleContainingIgnoreCase(currentUserId, keyword.trim());
+            } else {
+                ownSets = studySetRepository.findByUserId(currentUserId);
+            }
+            for (StudySet s : ownSets) merged.putIfAbsent(s.getId(), s);
+        }
+
+        return merged.values().stream()
                 .map(s -> toResponse(s, false))
                 .collect(Collectors.toList());
     }
