@@ -1,6 +1,7 @@
+"use client";
+
 import Link from "next/link";
 import { Edit } from "lucide-react";
-
 
 import { Button } from "@acme/ui/button";
 import {
@@ -13,6 +14,7 @@ import {
 import StudySetFoldersDialog from "./study-set-folders-dialog";
 import StudySetOptionsDropdown from "./study-set-options-dropdown";
 import { useAuth } from "~/contexts/auth-context";
+import StudySetShareDialog from "~/components/study-set/study-set-share-dialog";
 
 interface StudySetCTAProps {
   id: string;
@@ -21,6 +23,8 @@ interface StudySetCTAProps {
 
 const StudySetCTA = ({ id, userId }: StudySetCTAProps) => {
   const { isLoggedIn, user } = useAuth();
+  const userIdString = user?.id != null ? String(user.id) : undefined;
+
   return (
     <TooltipProvider delayDuration={0}>
       <div className="flex gap-2">
@@ -44,7 +48,7 @@ const StudySetCTA = ({ id, userId }: StudySetCTAProps) => {
         <StudySetOptionsDropdown
           id={id}
           isOwner={user?.id === userId}
-          userId={user?.id?.toString()}
+          userId={userIdString}
         />
       </div>
     </TooltipProvider>

@@ -11,11 +11,10 @@ import { useSignInDialogContext } from "~/contexts/sign-in-dialog-context";
 
 const SignUpWithEmail = () => {
   const [step, setStep] = useState<"details" | "otp">("details");
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
@@ -67,7 +66,7 @@ const SignUpWithEmail = () => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            username: `${firstName} ${lastName}`,
+            username,
             email,
             password,
             otpCode: otp,
@@ -90,7 +89,7 @@ const SignUpWithEmail = () => {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             email: data.email || email,
-            name: data.username || `${firstName} ${lastName}`,
+            name: data.username || username,
             image: null, // Avatar can be set later by user
           }),
         });
@@ -99,7 +98,7 @@ const SignUpWithEmail = () => {
       }
 
       setSuccess("Account created successfully!");
-      
+
       // Close dialog and redirect
       setTimeout(() => {
         onOpenChange(false);
@@ -154,31 +153,15 @@ const SignUpWithEmail = () => {
       {step === "details" && (
         <>
           <div>
-            <Label htmlFor="firstName" className="block text-sm font-medium mb-1">
-              First Name
+            <Label htmlFor="username" className="block text-sm font-medium mb-1">
+              Username
             </Label>
             <Input
-              id="firstName"
+              id="username"
               type="text"
-              placeholder="John"
-              value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
-              disabled={loading}
-              required
-              className="w-full"
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="lastName" className="block text-sm font-medium mb-1">
-              Last Name
-            </Label>
-            <Input
-              id="lastName"
-              type="text"
-              placeholder="Doe"
-              value={lastName}
-              onChange={(e) => setLastName(e.target.value)}
+              placeholder="yourname"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
               disabled={loading}
               required
               className="w-full"

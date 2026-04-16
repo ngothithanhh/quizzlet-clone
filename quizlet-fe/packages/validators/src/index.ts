@@ -16,7 +16,7 @@ const FlashcardSchema = z.object({
 });
 
 export const StudySetSchema = z.object({
-  id: z.string().optional(),
+  id: z.string().or(z.number()).optional(),
   title: z
     .string()
     .min(1, "Title is required")

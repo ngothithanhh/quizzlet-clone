@@ -7,39 +7,63 @@ import { LoaderIcon, AlertCircle, CheckCircle } from "lucide-react";
 import { Button } from "@acme/ui/button";
 import { Input } from "@acme/ui/input";
 import { Label } from "@acme/ui/label";
+import { env } from "~/env";
 import GoogleIcon from "../icons/google";
 import { signInWithGoogleSignUp } from "~/app/sign-up/oauth-actions";
 
 const SignUpForm = () => {
   const [showForm, setShowForm] = useState(false);
   const [step, setStep] = useState<"details" | "otp">("details");
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
+  const apiBaseUrl: string | undefined = env.NEXT_PUBLIC_API_URL;
+  const handleGoogleSignUp = (formData: FormData) => {
+    const action = signInWithGoogleSignUp as (data: FormData) => void | Promise<void>;
+    void action(formData);
+  };
+
+  const parseJsonSafe = (text: string) => {
+    try {
+      return text ? (JSON.parse(text) as { message?: string }) : null;
+    } catch {
+      return null;
+    }
+  };
+
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
 
+    if (!apiBaseUrl) {
+      setError("Missing NEXT_PUBLIC_API_URL. Please set it in .env.");
+      setLoading(false);
+      return;
+    }
+
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/auth/register/otp?email=${encodeURIComponent(email)}`,
+        `${apiBaseUrl}/api/auth/register/otp?email=${encodeURIComponent(email)}`,
         {
           method: "POST",
         }
       );
 
+      const text = await response.text();
+      const payload = parseJsonSafe(text);
+
       if (!response.ok) {
-        const errorData = await response.json();
-        setError(errorData.message || "Failed to send OTP");
+        setError(payload?.message ?? "Failed to send OTP");
         return;
       }
 
@@ -59,30 +83,34 @@ const SignUpForm = () => {
     setError(null);
     setLoading(true);
 
+    if (!apiBaseUrl) {
+      setError("Missing NEXT_PUBLIC_API_URL. Please set it in .env.");
+      setLoading(false);
+      return;
+    }
+
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/auth/register`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            username: `${firstName} ${lastName}`,
-            email,
-            password,
-            otpCode: otp,
-          }),
-        }
-      );
+      const response = await fetch(`${apiBaseUrl}/api/auth/register`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username,
+          email,
+          password,
+          otpCode: otp,
+        }),
+      });
+
+      const text = await response.text();
+      const payload = parseJsonSafe(text);
 
       if (!response.ok) {
-        const errorData = await response.json();
-        setError(errorData.message || "Registration failed");
+        setError(payload?.message ?? "Registration failed");
         return;
       }
 
-      const data = await response.json();
       setSuccess("Account created successfully! Redirecting...");
       setTimeout(() => {
         router.push("/login");
@@ -113,14 +141,14 @@ const SignUpForm = () => {
     }
 
     // Proceed to send OTP
-    handleSendOtp(e);
+    void handleSendOtp(e);
   };
 
   if (!showForm) {
     return (
       <div className="space-y-4">
         {/* Google Sign Up */}
-        <form action={signInWithGoogleSignUp} className="w-full">
+        <form action={handleGoogleSignUp} className="w-full">
           <Button
             type="submit"
             variant="outline"
@@ -179,31 +207,15 @@ const SignUpForm = () => {
       {step === "details" && (
         <>
           <div>
-            <Label htmlFor="firstName" className="block text-sm font-medium mb-2">
-              First Name
+            <Label htmlFor="username" className="block text-sm font-medium mb-2">
+              Username
             </Label>
             <Input
-              id="firstName"
+              id="username"
               type="text"
-              placeholder="John"
-              value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
-              disabled={loading}
-              required
-              className="w-full"
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="lastName" className="block text-sm font-medium mb-2">
-              Last Name
-            </Label>
-            <Input
-              id="lastName"
-              type="text"
-              placeholder="Doe"
-              value={lastName}
-              onChange={(e) => setLastName(e.target.value)}
+              placeholder="yourname"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
               disabled={loading}
               required
               className="w-full"
@@ -230,16 +242,27 @@ const SignUpForm = () => {
             <Label htmlFor="password" className="block text-sm font-medium mb-2">
               Password
             </Label>
-            <Input
-              id="password"
-              type="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              disabled={loading}
-              required
-              className="w-full"
-            />
+            <div className="relative">
+              <Input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={loading}
+                required
+                className="w-full pr-16"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-500 hover:text-gray-700"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+                aria-pressed={showPassword}
+              >
+                {showPassword ? "Hide" : "Show"}
+              </button>
+            </div>
             <p className="text-xs text-gray-500 mt-1">At least 8 characters</p>
           </div>
 
@@ -247,16 +270,27 @@ const SignUpForm = () => {
             <Label htmlFor="confirmPassword" className="block text-sm font-medium mb-2">
               Confirm Password
             </Label>
-            <Input
-              id="confirmPassword"
-              type="password"
-              placeholder="••••••••"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              disabled={loading}
-              required
-              className="w-full"
-            />
+            <div className="relative">
+              <Input
+                id="confirmPassword"
+                type={showConfirmPassword ? "text" : "password"}
+                placeholder="••••••••"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                disabled={loading}
+                required
+                className="w-full pr-16"
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword((prev) => !prev)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-500 hover:text-gray-700"
+                aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                aria-pressed={showConfirmPassword}
+              >
+                {showConfirmPassword ? "Hide" : "Show"}
+              </button>
+            </div>
           </div>
 
           <Button

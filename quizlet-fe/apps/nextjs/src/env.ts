@@ -23,6 +23,7 @@ export const env = createEnv({
    */
   client: {
     // NEXT_PUBLIC_CLIENTVAR: z.string(),
+    NEXT_PUBLIC_API_URL: z.string().optional(),
     NEXT_PUBLIC_S3_REGION: z.string().optional(),
     NEXT_PUBLIC_S3_ACCESS_KEY: z.string().optional(),
     NEXT_PUBLIC_S3_SECRET_KEY: z.string().optional(),
@@ -33,6 +34,7 @@ export const env = createEnv({
    */
   experimental__runtimeEnv: {
     NODE_ENV: process.env.NODE_ENV,
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
     NEXT_PUBLIC_S3_REGION: process.env.NEXT_PUBLIC_S3_REGION,
     NEXT_PUBLIC_S3_ACCESS_KEY: process.env.NEXT_PUBLIC_S3_ACCESS_KEY,
     NEXT_PUBLIC_S3_SECRET_KEY: process.env.NEXT_PUBLIC_S3_SECRET_KEY,

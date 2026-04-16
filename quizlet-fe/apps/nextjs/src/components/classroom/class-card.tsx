@@ -9,7 +9,7 @@ import { Card, CardContent, CardFooter, CardHeader } from "@acme/ui/card";
 
 interface ClassroomResponse {
   id: number;
-  name: string;
+  name?: string;
   description?: string;
   inviteCode: string;
   ownerId: number;
@@ -24,17 +24,20 @@ interface ClassCardProps {
 }
 
 export default function ClassCard({ classroom, onCopyCode }: ClassCardProps) {
+  const displayName = (classroom.name ?? "").trim() || "Class";
+  const initial = displayName.charAt(0).toUpperCase();
+
   return (
     <Card className="group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 border border-gray-100 dark:border-gray-800">
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2 flex-1 min-w-0">
             <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg">
-              {classroom.name.charAt(0).toUpperCase()}
+              {initial}
             </div>
             <div className="min-w-0">
               <h3 className="font-semibold text-gray-900 dark:text-white truncate leading-tight">
-                {classroom.name}
+                {displayName}
               </h3>
               {classroom.description && (
                 <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
