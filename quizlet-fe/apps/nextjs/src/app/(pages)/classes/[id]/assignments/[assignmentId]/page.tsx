@@ -135,6 +135,8 @@ export default function AssignmentDetailPage() {
     const score = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0;
     setSubmitted(true);
     setSubmittedData({ score, correctAnswers, totalQuestions, allowReview: assignment?.allowReviewAnswers ?? true, answerDetails: answerList });
+    // Switch to history mode so ResultView renders (instead of showing answers on quiz page)
+    setMode("history");
     submitMutation.mutate({ assignmentId: aId, score, correctAnswers, totalQuestions, durationSeconds, answers: answerList });
     if (autoSubmit) toast.info("Hết giờ! Bài thi đã được tự động nộp.");
   }, [submitted, answers, allCards.length, aId, assignment, startTime, submitMutation]);
@@ -300,10 +302,12 @@ function TeacherView({ assignment, classId, submissions, loadingSubmissions, aId
 
   const updateMutation = api.classroom.updateAssignment.useMutation({
     onSuccess: () => {
+      toast.success("Đã cập nhật bài kiểm tra!");
       void utils.classroom.assignmentById.invalidate({ assignmentId: aId });
       void utils.classroom.assignments.invalidate({ classId: assignment?.classId });
       setEditOpen(false);
     },
+    onError: (err) => toast.error(err.message ?? "Cập nhật thất bại"),
   });
 
   const handleUpdate = (e: React.FormEvent) => {
@@ -596,7 +600,7 @@ function AssignmentQuestionCard({
         term={card.term}
         // Only show correct answer hint AFTER submission
         definition={submitted ? card.definition : undefined}
-        userAnswer={userAnswer ?? ""}
+        userAnswer={submitted ? (userAnswer ?? "") : (userAnswer || undefined)}
         readOnly={submitted}
         onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
           onAnswer(card.id, card.term, e.target.value, card.definition)
