@@ -13,7 +13,8 @@ const flashcard = z.object({
   id: z.number(),
   term: z.string(),
   definition: z.string(),
-  studySetId: z.string(),
+  // Backend returns numeric IDs for studySetId.
+  studySetId: z.number(),
   userAnswer: z.string().min(1),
   position: z.number(),
 });

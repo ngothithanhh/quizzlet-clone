@@ -17,8 +17,16 @@ export interface NotificationResponse {
 export const notificationRouter = {
   /** GET /api/notifications */
   all: protectedProcedure.query(async ({ ctx }) => {
-    const data = await beGet<NotificationResponse[]>("/api/notifications", ctx.token);
-    return data ?? [];
+    const data = await beGet<Array<NotificationResponse & { content?: string }>>(
+      "/api/notifications",
+      ctx.token,
+    );
+
+    return (data ?? []).map((item) => ({
+      ...item,
+      // Backend field is `content`; UI currently reads `message`.
+      message: item.message ?? item.content ?? "",
+    }));
   }),
 
   /** GET /api/notifications/unread-count */
