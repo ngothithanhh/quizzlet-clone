@@ -281,6 +281,9 @@ public class ClassServiceImpl implements ClassService {
                 .title(req.getTitle())
                 .description(req.getDescription())
                 .dueDate(req.getDueDate())
+                .timeLimitMinutes(req.getTimeLimitMinutes())
+                .allowReviewAnswers(req.getAllowReviewAnswers() != null ? req.getAllowReviewAnswers() : true)
+                .maxAttempts(req.getMaxAttempts())
                 .build();
 
         assignment = assignmentRepo.save(assignment);
@@ -325,19 +328,40 @@ public class ClassServiceImpl implements ClassService {
                 assignment.getClassroom().getId(), userId
         ).orElseThrow(() -> new RuntimeException("Not a member of this class"));
 
-        AssignmentSubmission submission = submissionRepo
-                .findByAssignmentIdAndUserId(assignmentId, userId)
-                .orElse(null);
-
-        if (submission == null) {
-            submission = new AssignmentSubmission();
-            submission.setAssignment(assignment);
-            submission.setUser(userRepo.getReferenceById(userId));
+        // Kiểm tra giới hạn số lần nộp
+        if (assignment.getMaxAttempts() != null) {
+            int attemptsDone = submissionRepo.countByAssignmentIdAndUserId(assignmentId, userId);
+            if (attemptsDone >= assignment.getMaxAttempts()) {
+                throw new RuntimeException("Bạn đã hết lượt nộp bài (tối đa " + assignment.getMaxAttempts() + " lần)");
+            }
         }
 
+        // Tính attemptNumber = số lần nộp hiện tại + 1
+        int attemptNumber = submissionRepo.countByAssignmentIdAndUserId(assignmentId, userId) + 1;
+
+        // Serialize answers list to JSON
+        String answersJson = null;
+        if (req.getAnswers() != null && !req.getAnswers().isEmpty()) {
+            try {
+                answersJson = new com.fasterxml.jackson.databind.ObjectMapper()
+                        .writeValueAsString(req.getAnswers());
+            } catch (Exception e) {
+                // log and continue without answers detail
+            }
+        }
+
+        // Luôn tạo bản ghi mới (lưu lịch sử nhiều lần nộp)
+        AssignmentSubmission submission = new AssignmentSubmission();
+        submission.setAssignment(assignment);
+        submission.setUser(userRepo.getReferenceById(userId));
         submission.setStatus("COMPLETED");
+        submission.setAttemptNumber(attemptNumber);
         submission.setScore(req.getScore());
+        submission.setCorrectAnswers(req.getCorrectAnswers());
+        submission.setTotalQuestions(req.getTotalQuestions());
+        submission.setDurationSeconds(req.getDurationSeconds());
         submission.setCompletedAt(LocalDateTime.now());
+        submission.setAnswersJson(answersJson);
 
         submissionRepo.save(submission);
 
@@ -356,7 +380,7 @@ public class ClassServiceImpl implements ClassService {
                     notificationService.createNotification(
                             cm.getUser().getId(),
                             "Học sinh nộp bài: " + assignment.getTitle(),
-                            studentName + " đã nộp bài kiểm tra \"" + assignment.getTitle() + "\".",
+                            studentName + " đã nộp bài kiểm tra \"" + assignment.getTitle() + "\" (lần " + attemptNumber + ").",
                             NotificationType.ASSIGNMENT_SUBMITTED,
                             assignment.getId(),
                             "ASSIGNMENT"
@@ -369,7 +393,7 @@ public class ClassServiceImpl implements ClassService {
     }
 
     @Override
-    public AssignmentResultResponse getMyResult(Long assignmentId) {
+    public List<SubmissionResponse> getMyAttempts(Long assignmentId) {
         Long userId = SecurityUtils.getCurrentUserId();
 
         Assignment assignment = assignmentRepo.findById(assignmentId)
@@ -379,17 +403,21 @@ public class ClassServiceImpl implements ClassService {
                 assignment.getClassroom().getId(), userId
         ).orElseThrow(() -> new RuntimeException("Not a member of this class"));
 
-        AssignmentSubmission submission = submissionRepo
-                .findByAssignmentIdAndUserId(assignmentId, userId)
-                .orElseThrow(() -> new RuntimeException("You have not submitted this assignment"));
+        return submissionRepo
+                .findByAssignmentIdAndUserIdOrderByAttemptNumberAsc(assignmentId, userId)
+                .stream()
+                .map(ClassMapper::toSubmissionResponse)
+                .collect(Collectors.toList());
+    }
 
-        return AssignmentResultResponse.builder()
-                .assignmentId(assignment.getId())
-                .title(assignment.getTitle())
-                .status(submission.getStatus())
-                .score(submission.getScore())
-                .completedAt(submission.getCompletedAt())
-                .build();
+    @Override
+    public AssignmentResponse getAssignmentById(Long assignmentId) {
+        Long userId = SecurityUtils.getCurrentUserId();
+        Assignment assignment = assignmentRepo.findById(assignmentId)
+                .orElseThrow(() -> new RuntimeException("Assignment not found"));
+        memberRepo.findByClassroomIdAndUserId(assignment.getClassroom().getId(), userId)
+                .orElseThrow(() -> new RuntimeException("Not a member of this class"));
+        return ClassMapper.toAssignmentResponse(assignment);
     }
 
     @Override
@@ -407,7 +435,7 @@ public class ClassServiceImpl implements ClassService {
             throw new RuntimeException("Forbidden: Only teacher or creator can view submissions");
         }
 
-        return submissionRepo.findByAssignmentId(assignmentId).stream()
+        return submissionRepo.findByAssignmentIdFetchUser(assignmentId).stream()
                 .map(ClassMapper::toSubmissionResponse)
                 .collect(Collectors.toList());
     }

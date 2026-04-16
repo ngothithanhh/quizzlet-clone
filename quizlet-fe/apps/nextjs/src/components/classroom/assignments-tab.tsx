@@ -116,12 +116,20 @@ export default function AssignmentsTab({ classId, isCreator, isTeacher = false }
                     </p>
                   )}
 
-                  {assignment.dueDate && (
-                    <div className={`flex items-center gap-1.5 mt-1.5 text-xs ${overdue ? "text-red-400" : "text-gray-400"}`}>
-                      <CalendarDays size={11} />
-                      <span>Hạn nộp: {formatDate(assignment.dueDate)}</span>
-                    </div>
-                  )}
+                  <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+                    {(assignment as any).timeLimitMinutes && (
+                      <span className="text-[11px] text-blue-500">⏱ {(assignment as any).timeLimitMinutes} phút</span>
+                    )}
+                    {(assignment as any).maxAttempts && (
+                      <span className="text-[11px] text-gray-400">🔄 Tối đa {(assignment as any).maxAttempts} lần</span>
+                    )}
+                    {assignment.dueDate && (
+                      <div className={`flex items-center gap-1.5 text-xs ${overdue ? "text-red-400" : "text-gray-400"}`}>
+                        <CalendarDays size={11} />
+                        <span>Hạn: {formatDate(assignment.dueDate)}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Action */}
@@ -129,7 +137,7 @@ export default function AssignmentsTab({ classId, isCreator, isTeacher = false }
                   href={`/classes/${classId}/assignments/${assignment.id}`}
                   className="flex-shrink-0 flex items-center gap-1 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 opacity-0 group-hover:opacity-100 transition-all"
                 >
-                  {isCreator ? "Xem kết quả" : "Làm bài"}
+                  {canCreate ? "Xem kết quả" : "Làm bài"}
                   <ChevronRight size={14} />
                 </Link>
               </div>

@@ -28,6 +28,9 @@ export default function CreateAssignmentDialog({ classId }: CreateAssignmentDial
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState("");
+  const [timeLimitMinutes, setTimeLimitMinutes] = useState<string>("");
+  const [maxAttempts, setMaxAttempts] = useState<string>("");
+  const [allowReviewAnswers, setAllowReviewAnswers] = useState(true);
   const [selectedSet, setSelectedSet] = useState<{ id: number; title: string } | null>(null);
   const [query, setQuery] = useState("");
   const [showSearch, setShowSearch] = useState(false);
@@ -61,6 +64,7 @@ export default function CreateAssignmentDialog({ classId }: CreateAssignmentDial
   const reset = () => {
     setTitle(""); setDescription(""); setDueDate(""); setSelectedSet(null);
     setQuery(""); setShowSearch(false);
+    setTimeLimitMinutes(""); setMaxAttempts(""); setAllowReviewAnswers(true);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -72,6 +76,9 @@ export default function CreateAssignmentDialog({ classId }: CreateAssignmentDial
       description: description.trim() || undefined,
       dueDate: dueDate || undefined,
       studySetId: selectedSet?.id,
+      timeLimitMinutes: timeLimitMinutes ? parseInt(timeLimitMinutes) : undefined,
+      maxAttempts: maxAttempts ? parseInt(maxAttempts) : undefined,
+      allowReviewAnswers,
     });
   };
 
@@ -210,6 +217,59 @@ export default function CreateAssignmentDialog({ classId }: CreateAssignmentDial
                 )}
               </div>
             )}
+          </div>
+
+          {/* Timer & Attempts row */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="asgn-timer" className="text-sm flex items-center gap-1">
+                ⏱ Thời gian <span className="text-gray-400 font-normal">(phút, bỏ trống = ∞)</span>
+              </Label>
+              <Input
+                id="asgn-timer"
+                type="number"
+                min={1}
+                placeholder="VD: 30"
+                value={timeLimitMinutes}
+                onChange={(e) => setTimeLimitMinutes(e.target.value)}
+                disabled={isPending}
+                className="rounded-xl"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="asgn-attempts" className="text-sm flex items-center gap-1">
+                🔄 Số lần nộp <span className="text-gray-400 font-normal">(bỏ trống = ∞)</span>
+              </Label>
+              <Input
+                id="asgn-attempts"
+                type="number"
+                min={1}
+                placeholder="VD: 3"
+                value={maxAttempts}
+                onChange={(e) => setMaxAttempts(e.target.value)}
+                disabled={isPending}
+                className="rounded-xl"
+              />
+            </div>
+          </div>
+
+          {/* Allow review toggle */}
+          <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700">
+            <div>
+              <p className="text-sm font-medium text-gray-800 dark:text-gray-200">Cho phép xem đáp án</p>
+              <p className="text-xs text-gray-400 mt-0.5">Học sinh xem đúng/sai sau khi nộp bài</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setAllowReviewAnswers(!allowReviewAnswers)}
+              className={`relative w-11 h-6 rounded-full transition-colors ${
+                allowReviewAnswers ? "bg-indigo-600" : "bg-gray-300 dark:bg-gray-600"
+              }`}
+            >
+              <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
+                allowReviewAnswers ? "translate-x-5" : "translate-x-0"
+              }`} />
+            </button>
           </div>
 
           {/* Due date */}

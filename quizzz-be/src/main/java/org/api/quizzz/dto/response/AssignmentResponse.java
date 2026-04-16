@@ -26,4 +26,10 @@ public class AssignmentResponse {
     private String assignedByUsername;
     private LocalDateTime dueDate;
     private LocalDateTime createdAt;
+    /** Giới hạn thời gian làm bài (phút). null = không giới hạn */
+    private Integer timeLimitMinutes;
+    /** Học sinh có được xem đáp án sau khi nộp không */
+    private Boolean allowReviewAnswers;
+    /** Số lần nộp bài tối đa. null = không giới hạn */
+    private Integer maxAttempts;
 }

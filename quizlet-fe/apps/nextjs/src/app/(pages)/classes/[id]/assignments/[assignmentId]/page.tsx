@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
+  AlertCircle,
   ArrowLeft,
-  Award,
   CheckCircle2,
   Clock,
+  GraduationCap,
+  History,
   Loader2,
   Send,
   Trophy,
@@ -15,197 +17,452 @@ import {
 
 import { Badge } from "@acme/ui/badge";
 import { Button } from "@acme/ui/button";
-import { Card, CardContent, CardHeader } from "@acme/ui/card";
-import { Progress } from "@acme/ui/progress";
+import { toast } from "@acme/ui/toast";
 
 import { api } from "~/trpc/react";
 import { useAuth } from "~/contexts/auth-context";
+
+function formatTime(seconds: number) {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+}
+
+function formatDuration(seconds?: number) {
+  if (!seconds) return "—";
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return m > 0 ? `${m}p ${s}s` : `${s}s`;
+}
 
 export default function AssignmentDetailPage() {
   const { id: classId, assignmentId } = useParams<{ id: string; assignmentId: string }>();
   const router = useRouter();
   const { user } = useAuth();
-
-  const assignId = Number(assignmentId);
+  const aId = Number(assignmentId);
 
   const { data: classroom } = api.classroom.byId.useQuery({ id: Number(classId) });
-  const { data: myResult, isLoading: loadingResult } = api.classroom.myResult.useQuery({
-    assignmentId: assignId,
-  });
-  const { data: submissions = [] } = api.classroom.submissions.useQuery(
-    { assignmentId: assignId },
-    { enabled: classroom?.isCreator ?? false },
+  const { data: assignment, isLoading: loadingAssignment } = api.classroom.assignmentById.useQuery({ assignmentId: aId });
+  const { data: myAttempts = [], isLoading: loadingAttempts, refetch: refetchAttempts } = api.classroom.myAttempts.useQuery({ assignmentId: aId });
+  const isTeacher = classroom?.isCreator || classroom?.currentUserRole === "TEACHER";
+
+  const { data: submissions = [], isLoading: loadingSubmissions } = api.classroom.submissions.useQuery(
+    { assignmentId: aId },
+    { enabled: !!isTeacher },
   );
-  const { data: assignments = [] } = api.classroom.assignments.useQuery({ classId: Number(classId) });
 
-  const assignment = assignments.find((a) => a.id === assignId);
+  const studySetId = assignment?.studySetId;
+  const { data: testCards } = api.studySet.testCards.useQuery(
+    { id: studySetId! },
+    { enabled: !!studySetId },
+  );
 
-  const isCreator = classroom?.isCreator ?? false;
-  const hasSubmitted = !!myResult;
+  const allCards = [
+    ...(testCards?.trueOrFalse ?? []).map((c) => ({ ...c, type: "tf" as const })),
+    ...(testCards?.multipleChoice ?? []).map((c) => ({ ...c, type: "mc" as const })),
+    ...(testCards?.written ?? []).map((c) => ({ ...c, type: "written" as const })),
+  ];
+
+  // ── Quiz state ──────────────────────────────────────────────────────────────
+  const [mode, setMode] = useState<"history" | "taking">("history");
+  const [timeLeft, setTimeLeft] = useState<number | null>(null);
+  const [startTime, setStartTime] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [answers, setAnswers] = useState<
+    Record<number, { userAnswer: string; correctAnswer: string; isCorrect: boolean; term: string }>
+  >({});
+  const [submitted, setSubmitted] = useState(false);
+  const [submittedData, setSubmittedData] = useState<{
+    score: number; correctAnswers: number; totalQuestions: number; allowReview: boolean; answerDetails: any[];
+  } | null>(null);
 
   const submitMutation = api.classroom.submitAssignment.useMutation({
-    onSuccess: () => void router.refresh(),
+    onSuccess: () => {
+      toast.success("Nộp bài thành công!");
+      void refetchAttempts();
+    },
+    onError: (err) => toast.error(err.message ?? "Nộp bài thất bại"),
   });
 
-  const utils = api.useUtils();
+  const startQuiz = () => {
+    setAnswers({});
+    setSubmitted(false);
+    setSubmittedData(null);
+    setStartTime(Date.now());
+    if (assignment?.timeLimitMinutes) {
+      setTimeLeft(assignment.timeLimitMinutes * 60);
+    } else {
+      setTimeLeft(null);
+    }
+    setMode("taking");
+  };
 
-  if (loadingResult) {
-    return (
-      <div className="container py-8 flex justify-center items-center min-h-[400px]">
-        <Loader2 size={32} className="animate-spin text-indigo-500" />
-      </div>
-    );
+  useEffect(() => {
+    if (timeLeft === null || submitted) return;
+    if (timeLeft <= 0) { void handleSubmit(true); return; }
+    timerRef.current = setTimeout(() => setTimeLeft((t) => (t !== null ? t - 1 : null)), 1000);
+    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+  }, [timeLeft, submitted]);
+
+  const handleAnswer = useCallback((flashcardId: number, term: string, userAnswer: string, correctAnswer: string) => {
+    const isCorrect = userAnswer.trim().toLowerCase() === correctAnswer.trim().toLowerCase();
+    setAnswers((prev) => ({ ...prev, [flashcardId]: { userAnswer, correctAnswer, isCorrect, term } }));
+  }, []);
+
+  const handleSubmit = useCallback(async (autoSubmit = false) => {
+    if (submitted) return;
+    if (timerRef.current) clearTimeout(timerRef.current);
+    const durationSeconds = Math.floor((Date.now() - startTime) / 1000);
+    const answerList = Object.entries(answers).map(([id, a]) => ({
+      flashcardId: Number(id), term: a.term, userAnswer: a.userAnswer, correctAnswer: a.correctAnswer, isCorrect: a.isCorrect,
+    }));
+    const correctAnswers = answerList.filter((a) => a.isCorrect).length;
+    const totalQuestions = allCards.length;
+    const score = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0;
+    setSubmitted(true);
+    setSubmittedData({ score, correctAnswers, totalQuestions, allowReview: assignment?.allowReviewAnswers ?? true, answerDetails: answerList });
+    submitMutation.mutate({ assignmentId: aId, score, correctAnswers, totalQuestions, durationSeconds, answers: answerList });
+    if (autoSubmit) toast.info("Hết giờ! Bài thi đã được tự động nộp.");
+  }, [submitted, answers, allCards.length, aId, assignment, startTime, submitMutation]);
+
+  if (loadingAssignment) {
+    return <div className="min-h-screen flex items-center justify-center"><Loader2 size={32} className="animate-spin text-indigo-500" /></div>;
   }
 
-  // Teacher: xem tất cả submissions
-  if (isCreator) {
+  // ──────────────────────────────────────────────────────────────────────────
+  // TEACHER VIEW
+  // ──────────────────────────────────────────────────────────────────────────
+  if (isTeacher) {
     return (
-      <div className="container py-8 max-w-3xl">
-        <button
-          onClick={() => router.push(`/classes/${classId}`)}
-          className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 mb-6 transition-colors"
-        >
-          <ArrowLeft size={16} />
-          Quay lại lớp học
-        </button>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50 dark:from-gray-950 dark:to-gray-900 py-8">
+        <div className="container max-w-4xl">
+          <button onClick={() => router.push(`/classes/${classId}`)} className="flex items-center gap-2 text-sm text-gray-500 hover:text-indigo-600 mb-6 transition-colors">
+            <ArrowLeft size={15} /> Quay lại lớp học
+          </button>
+          <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-xl p-6 mb-6">
+            <div className="flex items-center gap-4 mb-2">
+              <div className="w-12 h-12 rounded-2xl bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
+                <Trophy size={22} className="text-indigo-600" />
+              </div>
+              <div>
+                <h1 className="text-xl font-black text-gray-900 dark:text-white">{assignment?.title}</h1>
+                <p className="text-sm text-gray-400">
+                  {assignment?.timeLimitMinutes ? `⏱ ${assignment.timeLimitMinutes} phút` : "Không giới hạn thời gian"}
+                  {assignment?.maxAttempts ? ` • Tối đa ${assignment.maxAttempts} lần nộp` : ""}
+                  {" • "}
+                  {assignment?.allowReviewAnswers ? "✅ Cho xem đáp án" : "🚫 Không cho xem đáp án"}
+                </p>
+              </div>
+            </div>
+          </div>
 
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-12 h-12 rounded-2xl bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
-            <Trophy size={22} className="text-indigo-600" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-              {assignment?.title ?? "Bài kiểm tra"}
-            </h1>
-            <p className="text-sm text-gray-500">Kết quả từ học sinh</p>
-          </div>
+          <h2 className="font-bold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
+            <GraduationCap size={18} /> Kết quả học sinh ({submissions.length} lượt nộp)
+          </h2>
+
+          {loadingSubmissions ? (
+            <div className="flex justify-center py-10"><Loader2 size={24} className="animate-spin text-indigo-500" /></div>
+          ) : submissions.length === 0 ? (
+            <div className="text-center py-16 text-gray-400 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800">
+              <Clock size={36} className="mx-auto mb-3 opacity-30" />
+              <p className="text-sm">Chưa có học sinh nào nộp bài</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {submissions.map((sub) => {
+                const pct = sub.score ?? 0;
+                let details: any[] = [];
+                try { details = sub.answersJson ? JSON.parse(sub.answersJson) : []; } catch {}
+                return (
+                  <TeacherSubmissionRow key={sub.id} sub={sub} pct={pct} details={details} />
+                );
+              })}
+            </div>
+          )}
         </div>
-
-        {submissions.length === 0 ? (
-          <div className="text-center py-16 text-gray-400">
-            <Clock size={36} className="mx-auto mb-3 opacity-30" />
-            <p className="text-sm">Chưa có học sinh nào nộp bài</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {submissions.map((sub) => {
-              const pct = sub.totalQuestions > 0
-                ? Math.round((sub.score / sub.totalQuestions) * 100)
-                : 0;
-              return (
-                <Card key={sub.id} className="border border-gray-100 dark:border-gray-800">
-                  <CardContent className="p-4 flex items-center gap-4">
-                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 font-bold text-sm">
-                      {sub.username?.charAt(0).toUpperCase() ?? "?"}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm text-gray-900 dark:text-white">{sub.username}</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Progress value={pct} className="h-1.5 flex-1" />
-                        <span className="text-xs text-gray-500 flex-shrink-0">
-                          {sub.score}/{sub.totalQuestions} ({pct}%)
-                        </span>
-                      </div>
-                    </div>
-                    <Badge
-                      variant="outline"
-                      className={pct >= 80 ? "border-green-300 text-green-600" : pct >= 50 ? "border-yellow-300 text-yellow-600" : "border-red-300 text-red-600"}
-                    >
-                      {pct >= 80 ? "Giỏi" : pct >= 50 ? "Đạt" : "Chưa đạt"}
-                    </Badge>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        )}
       </div>
     );
   }
 
-  // Student: đã nộp → xem kết quả
-  if (hasSubmitted && myResult) {
-    const pct = myResult.totalQuestions > 0
-      ? Math.round((myResult.score / myResult.totalQuestions) * 100)
-      : 0;
+  // ──────────────────────────────────────────────────────────────────────────
+  // STUDENT VIEW — HISTORY
+  // ──────────────────────────────────────────────────────────────────────────
+  if (mode === "history") {
+    const attemptsUsed = myAttempts.length;
+    const maxAttempts = assignment?.maxAttempts ?? null;
+    const canTakeMore = !maxAttempts || attemptsUsed < maxAttempts;
+
+    // After submit show result
+    if (submitted && submittedData) {
+      return <ResultView submittedData={submittedData} assignment={assignment} onBack={() => { setSubmitted(false); setMode("history"); }} classId={classId} />;
+    }
 
     return (
-      <div className="container py-8 max-w-2xl">
-        <button
-          onClick={() => router.push(`/classes/${classId}`)}
-          className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 mb-6 transition-colors"
-        >
-          <ArrowLeft size={16} />
-          Quay lại lớp học
-        </button>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50 dark:from-gray-950 dark:to-gray-900 py-8">
+        <div className="container max-w-2xl">
+          <button onClick={() => router.push(`/classes/${classId}`)} className="flex items-center gap-2 text-sm text-gray-500 hover:text-indigo-600 mb-6 transition-colors">
+            <ArrowLeft size={15} /> Quay lại lớp học
+          </button>
 
-        <Card className="mb-6 border-0 shadow-xl overflow-hidden">
-          <div className={`h-2 ${pct >= 80 ? "bg-green-500" : pct >= 50 ? "bg-yellow-500" : "bg-red-500"}`} />
-          <CardContent className="p-8 text-center">
-            <div className={`w-24 h-24 rounded-full mx-auto flex items-center justify-center text-3xl font-black mb-4 ${
-              pct >= 80 ? "bg-green-100 text-green-600" : pct >= 50 ? "bg-yellow-100 text-yellow-600" : "bg-red-100 text-red-600"
-            }`}>
-              {pct}%
+          <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-xl p-6 mb-4">
+            <h1 className="text-xl font-black text-gray-900 dark:text-white mb-1">{assignment?.title}</h1>
+            <p className="text-sm text-gray-400">
+              {assignment?.description}
+            </p>
+            <div className="flex flex-wrap gap-2 mt-3">
+              {assignment?.timeLimitMinutes && (
+                <span className="text-xs px-2 py-1 rounded-full bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-300 flex items-center gap-1">
+                  <Clock size={10} /> {assignment.timeLimitMinutes} phút
+                </span>
+              )}
+              {allCards.length > 0 && (
+                <span className="text-xs px-2 py-1 rounded-full bg-indigo-50 text-indigo-600 dark:bg-indigo-900/20 dark:text-indigo-300">
+                  {allCards.length} câu hỏi
+                </span>
+              )}
+              <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-500 dark:bg-gray-800 flex items-center gap-1">
+                <History size={10} /> {attemptsUsed}{maxAttempts ? `/${maxAttempts}` : ""} lần nộp
+              </span>
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
-              {assignment?.title}
-            </h2>
-            <p className="text-gray-500 text-sm mb-6">Kết quả bài làm của bạn</p>
 
-            <div className="flex justify-center gap-8 text-sm">
-              <div className="flex flex-col items-center gap-1">
-                <CheckCircle2 size={20} className="text-green-500" />
-                <span className="font-bold text-xl text-green-600">{myResult.score}</span>
-                <span className="text-gray-400 text-xs">Đúng</span>
-              </div>
-              <div className="flex flex-col items-center gap-1">
-                <XCircle size={20} className="text-red-400" />
-                <span className="font-bold text-xl text-red-500">{myResult.totalQuestions - myResult.score}</span>
-                <span className="text-gray-400 text-xs">Sai</span>
-              </div>
-              <div className="flex flex-col items-center gap-1">
-                <Award size={20} className="text-indigo-500" />
-                <span className="font-bold text-xl text-indigo-600">{myResult.totalQuestions}</span>
-                <span className="text-gray-400 text-xs">Tổng câu</span>
+            <div className="mt-5">
+              {canTakeMore && allCards.length > 0 ? (
+                <Button onClick={startQuiz} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl gap-2">
+                  <Send size={16} /> {attemptsUsed === 0 ? "Bắt đầu làm bài" : "Làm lại bài"}
+                </Button>
+              ) : !canTakeMore ? (
+                <p className="text-center text-sm text-red-500 font-medium">Bạn đã hết lượt nộp bài (tối đa {maxAttempts} lần)</p>
+              ) : (
+                <p className="text-center text-sm text-gray-400">Học phần này chưa có câu hỏi</p>
+              )}
+            </div>
+          </div>
+
+          {/* Attempt history */}
+          {loadingAttempts ? (
+            <div className="flex justify-center py-8"><Loader2 size={20} className="animate-spin text-indigo-400" /></div>
+          ) : myAttempts.length > 0 && (
+            <div>
+              <h3 className="font-bold text-sm text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+                <History size={14} /> Lịch sử làm bài
+              </h3>
+              <div className="space-y-2">
+                {myAttempts.map((attempt) => {
+                  const pct = attempt.score ?? 0;
+                  return (
+                    <StudentAttemptRow key={attempt.id} attempt={attempt} pct={pct} allowReview={assignment?.allowReviewAnswers ?? true} />
+                  );
+                })}
               </div>
             </div>
-          </CardContent>
-        </Card>
-
-        <Button onClick={() => router.push(`/classes/${classId}`)} className="w-full">
-          Quay lại lớp học
-        </Button>
+          )}
+        </div>
       </div>
     );
   }
 
-  // Student: chưa nộp → thông báo chờ
+  // ──────────────────────────────────────────────────────────────────────────
+  // STUDENT VIEW — TAKING QUIZ
+  // ──────────────────────────────────────────────────────────────────────────
+  const answeredCount = Object.keys(answers).length;
   return (
-    <div className="container py-8 max-w-2xl text-center">
-      <button
-        onClick={() => router.push(`/classes/${classId}`)}
-        className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 mb-6 transition-colors mx-auto"
-      >
-        <ArrowLeft size={16} />
-        Quay lại lớp học
-      </button>
-      <Card className="border-0 shadow-xl p-10">
-        <div className="w-16 h-16 rounded-2xl bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center mx-auto mb-4">
-          <Send size={28} className="text-indigo-600" />
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50 dark:from-gray-950 dark:to-gray-900 py-8">
+      <div className="container max-w-3xl">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-lg font-black text-gray-900 dark:text-white">{assignment?.title}</h1>
+            <p className="text-xs text-gray-400">{allCards.length} câu hỏi</p>
+          </div>
+          <div className="flex items-center gap-3">
+            {timeLeft !== null && (
+              <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-mono font-bold ${
+                timeLeft < 60 ? "bg-red-100 text-red-600 dark:bg-red-900/30 animate-pulse" :
+                timeLeft < 300 ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30" :
+                "bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30"
+              }`}>
+                <Clock size={14} />{formatTime(timeLeft)}
+              </div>
+            )}
+            <Button onClick={() => void handleSubmit(false)} disabled={submitMutation.isPending} className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl gap-2">
+              {submitMutation.isPending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+              Nộp bài ({answeredCount}/{allCards.length})
+            </Button>
+          </div>
         </div>
-        <h2 className="text-xl font-bold mb-2">{assignment?.title ?? "Bài kiểm tra"}</h2>
-        <p className="text-gray-500 text-sm mb-6">
-          {assignment?.description ?? "Bài kiểm tra này được thực hiện trực tiếp qua study set của lớp."}
-        </p>
-        {assignment?.studySetId && (
-          <Button
-            className="bg-indigo-600 hover:bg-indigo-700 text-white"
-            onClick={() => router.push(`/study-sets/${assignment.studySetId}/learn`)}
-          >
-            Làm bài qua Study Set
-          </Button>
-        )}
-      </Card>
+
+        <div className="space-y-4">
+          {allCards.map((card, index) => (
+            <QuestionCard key={card.id} index={index} card={card} userAnswer={answers[card.id]?.userAnswer} onAnswer={handleAnswer} />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Sub-components ─────────────────────────────────────────────────────────────
+
+function ResultView({ submittedData, assignment, onBack, classId }: any) {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50 dark:from-gray-950 dark:to-gray-900 py-10">
+      <div className="container max-w-2xl">
+        <button onClick={onBack} className="flex items-center gap-2 text-sm text-gray-500 hover:text-indigo-600 mb-6 transition-colors">
+          <ArrowLeft size={15} /> Lịch sử làm bài
+        </button>
+        <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-xl p-8 text-center">
+          <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 ${
+            submittedData.score >= 80 ? "bg-green-100 dark:bg-green-900/30" :
+            submittedData.score >= 50 ? "bg-yellow-100 dark:bg-yellow-900/30" :
+            "bg-red-100 dark:bg-red-900/30"}`}>
+            {submittedData.score >= 80
+              ? <CheckCircle2 size={36} className="text-green-500" />
+              : <AlertCircle size={36} className={submittedData.score >= 50 ? "text-yellow-500" : "text-red-500"} />}
+          </div>
+          <h1 className="text-2xl font-black text-gray-900 dark:text-white mb-1">{assignment?.title}</h1>
+          <div className="text-5xl font-black text-indigo-600 dark:text-indigo-400 mb-2 mt-4">{submittedData.score}%</div>
+          <p className="text-gray-500 text-sm mb-8">{submittedData.correctAnswers}/{submittedData.totalQuestions} câu đúng</p>
+
+          {submittedData.allowReview && submittedData.answerDetails.length > 0 && (
+            <div className="text-left space-y-2 mt-4 pt-6 border-t border-gray-100 dark:border-gray-800">
+              <h3 className="font-bold text-sm text-gray-800 dark:text-gray-200 mb-3">Chi tiết từng câu</h3>
+              {submittedData.answerDetails.map((a: any, i: number) => (
+                <div key={i} className={`flex items-start gap-3 p-3 rounded-xl border ${a.isCorrect ? "bg-green-50 border-green-100 dark:bg-green-900/10 dark:border-green-800/30" : "bg-red-50 border-red-100 dark:bg-red-900/10 dark:border-red-800/30"}`}>
+                  {a.isCorrect ? <CheckCircle2 size={15} className="text-green-500 flex-shrink-0 mt-0.5" /> : <XCircle size={15} className="text-red-500 flex-shrink-0 mt-0.5" />}
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">{a.term}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Bạn: <span className={a.isCorrect ? "text-green-600 font-medium" : "text-red-500 line-through"}>{a.userAnswer || "(bỏ trống)"}</span>
+                      {!a.isCorrect && <span className="ml-2 text-green-600 font-medium">→ {a.correctAnswer}</span>}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          {!submittedData.allowReview && (
+            <p className="text-xs text-gray-400 mt-4">Giáo viên không cho phép xem đáp án chi tiết.</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StudentAttemptRow({ attempt, pct, allowReview }: any) {
+  const [expanded, setExpanded] = useState(false);
+  let details: any[] = [];
+  try { details = attempt.answersJson ? JSON.parse(attempt.answersJson) : []; } catch {}
+
+  return (
+    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
+      <button onClick={() => setExpanded(!expanded)} className="w-full flex items-center gap-4 p-4 text-left hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+        <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0 ${
+          pct >= 80 ? "bg-green-100 text-green-700" : pct >= 50 ? "bg-yellow-100 text-yellow-700" : "bg-red-100 text-red-600"
+        }`}>{pct}%</div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-gray-900 dark:text-white">Lần {attempt.attemptNumber}</p>
+          <p className="text-xs text-gray-400">
+            {attempt.correctAnswers}/{attempt.totalQuestions} đúng • {attempt.durationSeconds ? `${Math.floor(attempt.durationSeconds / 60)}p ${attempt.durationSeconds % 60}s` : "—"}
+            {attempt.completedAt && ` • ${new Date(attempt.completedAt).toLocaleString("vi-VN")}`}
+          </p>
+        </div>
+        <Badge variant="outline" className={`flex-shrink-0 text-xs ${pct >= 80 ? "border-green-300 text-green-600" : pct >= 50 ? "border-yellow-300 text-yellow-600" : "border-red-300 text-red-600"}`}>
+          {pct >= 80 ? "Giỏi" : pct >= 50 ? "Đạt" : "Chưa đạt"}
+        </Badge>
+      </button>
+      {expanded && allowReview && details.length > 0 && (
+        <div className="px-4 pb-4 space-y-2 border-t border-gray-50 dark:border-gray-800 pt-3">
+          {details.map((a: any, i: number) => (
+            <div key={i} className={`flex items-start gap-2 text-xs p-2 rounded-lg ${a.isCorrect ? "bg-green-50 dark:bg-green-900/10" : "bg-red-50 dark:bg-red-900/10"}`}>
+              {a.isCorrect ? <CheckCircle2 size={12} className="text-green-500 mt-0.5 flex-shrink-0" /> : <XCircle size={12} className="text-red-500 mt-0.5 flex-shrink-0" />}
+              <span className="font-medium text-gray-700 dark:text-gray-300">{a.term}: </span>
+              <span className={a.isCorrect ? "text-green-600" : "text-red-500 line-through"}>{a.userAnswer || "(bỏ trống)"}</span>
+              {!a.isCorrect && <span className="text-green-600 ml-1">→ {a.correctAnswer}</span>}
+            </div>
+          ))}
+        </div>
+      )}
+      {expanded && !allowReview && (
+        <p className="px-4 pb-4 text-xs text-gray-400 border-t border-gray-50 dark:border-gray-800 pt-3">Giáo viên không cho phép xem đáp án.</p>
+      )}
+    </div>
+  );
+}
+
+function TeacherSubmissionRow({ sub, pct, details }: any) {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
+      <button onClick={() => setExpanded(!expanded)} className="w-full flex items-center gap-4 p-4 text-left hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+        <div className="flex-shrink-0 w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 font-bold text-sm">
+          {sub.username?.charAt(0).toUpperCase() ?? "?"}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold text-sm text-gray-900 dark:text-white">{sub.username}</p>
+          <p className="text-xs text-gray-400">
+            Lần {sub.attemptNumber} • {sub.correctAnswers}/{sub.totalQuestions} đúng
+            {sub.durationSeconds && ` • ${Math.floor(sub.durationSeconds / 60)}p ${sub.durationSeconds % 60}s`}
+          </p>
+        </div>
+        <Badge variant="outline" className={`flex-shrink-0 text-xs ${pct >= 80 ? "border-green-300 text-green-600" : pct >= 50 ? "border-yellow-300 text-yellow-600" : "border-red-300 text-red-600"}`}>
+          {pct}% • {pct >= 80 ? "Giỏi" : pct >= 50 ? "Đạt" : "Chưa đạt"}
+        </Badge>
+      </button>
+      {expanded && details.length > 0 && (
+        <div className="px-4 pb-4 space-y-2 border-t border-gray-50 dark:border-gray-800 pt-3">
+          {details.map((a: any, i: number) => (
+            <div key={i} className={`flex items-start gap-2 text-xs p-2 rounded-lg ${a.isCorrect ? "bg-green-50 dark:bg-green-900/10" : "bg-red-50 dark:bg-red-900/10"}`}>
+              {a.isCorrect ? <CheckCircle2 size={12} className="text-green-500 mt-0.5 flex-shrink-0" /> : <XCircle size={12} className="text-red-500 mt-0.5 flex-shrink-0" />}
+              <span className="font-medium text-gray-700 dark:text-gray-300">{a.term}: </span>
+              <span className={a.isCorrect ? "text-green-600" : "text-red-500 line-through"}>{a.userAnswer || "(bỏ trống)"}</span>
+              {!a.isCorrect && <span className="text-green-600 ml-1">→ {a.correctAnswer}</span>}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function QuestionCard({ index, card, userAnswer, onAnswer }: { index: number; card: any; userAnswer?: string; onAnswer: (id: number, term: string, userAnswer: string, correctAnswer: string) => void; }) {
+  if (card.type === "tf") {
+    return (
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 shadow-sm">
+        <p className="text-xs text-gray-400 mb-2">Câu {index + 1} • Đúng / Sai</p>
+        <p className="font-semibold text-gray-900 dark:text-white mb-4">{card.term}</p>
+        <div className="flex gap-3">
+          {["True", "False"].map((opt) => (
+            <button key={opt} onClick={() => onAnswer(card.id, card.term, opt, card.answer)}
+              className={`flex-1 py-2.5 rounded-xl border text-sm font-semibold transition-all ${userAnswer === opt ? "bg-indigo-600 text-white border-indigo-600" : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-indigo-300"}`}>
+              {opt === "True" ? "✅ Đúng" : "❌ Sai"}
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+  if (card.type === "mc") {
+    return (
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 shadow-sm">
+        <p className="text-xs text-gray-400 mb-2">Câu {index + 1} • Nhiều lựa chọn</p>
+        <p className="font-semibold text-gray-900 dark:text-white mb-4">{card.term}</p>
+        <div className="grid grid-cols-2 gap-2">
+          {(card.answers ?? []).map((opt: string) => (
+            <button key={opt} onClick={() => onAnswer(card.id, card.term, opt, card.definition)}
+              className={`py-2.5 px-3 rounded-xl border text-sm font-medium text-left transition-all ${userAnswer === opt ? "bg-indigo-600 text-white border-indigo-600" : "border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-indigo-300"}`}>
+              {opt}
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 shadow-sm">
+      <p className="text-xs text-gray-400 mb-2">Câu {index + 1} • Tự điền</p>
+      <p className="font-semibold text-gray-900 dark:text-white mb-3">{card.term}</p>
+      <input type="text" value={userAnswer ?? ""} onChange={(e) => onAnswer(card.id, card.term, e.target.value, card.definition)}
+        placeholder="Nhập câu trả lời..." className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-sm outline-none focus:border-indigo-400 transition-colors" />
     </div>
   );
 }

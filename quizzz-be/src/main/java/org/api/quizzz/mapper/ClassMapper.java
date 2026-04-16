@@ -58,6 +58,9 @@ public class ClassMapper {
                 .assignedByUsername(a.getAssignedBy() != null ? a.getAssignedBy().getUsername() : null)
                 .dueDate(a.getDueDate())
                 .createdAt(a.getCreatedAt())
+                .timeLimitMinutes(a.getTimeLimitMinutes())
+                .allowReviewAnswers(a.getAllowReviewAnswers() != null ? a.getAllowReviewAnswers() : true)
+                .maxAttempts(a.getMaxAttempts())
                 .build();
     }
 
@@ -70,7 +73,14 @@ public class ClassMapper {
                 .username(s.getUser() != null ? s.getUser().getUsername() : null)
                 .status(s.getStatus())
                 .score(s.getScore())
+                .correctAnswers(s.getCorrectAnswers())
+                .totalQuestions(s.getTotalQuestions())
+                .durationSeconds(s.getDurationSeconds())
+                .attemptNumber(s.getAttemptNumber())
                 .completedAt(s.getCompletedAt())
+                .answersJson(s.getAnswersJson())
+                .allowReviewAnswers(s.getAssignment() != null && s.getAssignment().getAllowReviewAnswers() != null
+                        ? s.getAssignment().getAllowReviewAnswers() : true)
                 .build();
     }
-}
+}

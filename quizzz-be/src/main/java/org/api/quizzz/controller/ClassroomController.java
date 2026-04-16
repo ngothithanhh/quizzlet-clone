@@ -111,6 +111,12 @@ public class ClassroomController {
         return ResponseEntity.ok(classService.getAssignmentsByClass(classId));
     }
 
+    /** Lấy thông tin chi tiết 1 assignment (học sinh dùng khi bắt đầu làm bài) */
+    @GetMapping("/assignments/{assignmentId}")
+    public ResponseEntity<AssignmentResponse> getAssignmentById(@PathVariable Long assignmentId) {
+        return ResponseEntity.ok(classService.getAssignmentById(assignmentId));
+    }
+
     /** 7.14 Nộp bài kiểm tra */
     @PostMapping("/assignments/{assignmentId}/submit")
     public ResponseEntity<Map<String, String>> submitAssignment(@PathVariable Long assignmentId,
@@ -118,10 +124,10 @@ public class ClassroomController {
         return ResponseEntity.ok(Map.of("message", classService.submitAssignment(assignmentId, req)));
     }
 
-    /** 7.15 User xem kết quả bài kiểm tra của mình */
-    @GetMapping("/assignments/{assignmentId}/my-result")
-    public ResponseEntity<AssignmentResultResponse> getMyResult(@PathVariable Long assignmentId) {
-        return ResponseEntity.ok(classService.getMyResult(assignmentId));
+    /** Học sinh xem tất cả lần làm bài của mình */
+    @GetMapping("/assignments/{assignmentId}/my-attempts")
+    public ResponseEntity<List<SubmissionResponse>> getMyAttempts(@PathVariable Long assignmentId) {
+        return ResponseEntity.ok(classService.getMyAttempts(assignmentId));
     }
 
     /** 7.16 Teacher xem tất cả bài nộp */

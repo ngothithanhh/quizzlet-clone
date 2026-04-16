@@ -37,10 +37,14 @@ public interface ClassService {
 
     List<AssignmentResponse> getAssignmentsByClass(Long classId);
 
+    AssignmentResponse getAssignmentById(Long assignmentId);
+
     String submitAssignment(Long assignmentId, SubmitAssignmentRequest req);
 
-    AssignmentResultResponse getMyResult(Long assignmentId);
+    /** Lấy tất cả lần làm bài của user hiện tại cho một assignment */
+    List<SubmissionResponse> getMyAttempts(Long assignmentId);
 
+    /** Teacher xem tất cả submissions của cả lớp */
     List<SubmissionResponse> getSubmissions(Long assignmentId);
 
     List<StudySetResponse> getStudySetsByClass(Long classId);

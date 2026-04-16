@@ -43,14 +43,39 @@ export interface ClassroomResponse {
   currentUserRole?: "TEACHER" | "STUDENT" | null;
 }
 
+export interface AssignmentResponse {
+  id: number;
+  title: string;
+  description?: string;
+  studySetId?: number;
+  studySetTitle?: string;
+  classId?: number;
+  className?: string;
+  assignedById?: number;
+  assignedByUsername?: string;
+  dueDate?: string;
+  createdAt?: string;
+  timeLimitMinutes?: number | null;
+  allowReviewAnswers?: boolean;
+  maxAttempts?: number | null;
+}
+
 export interface SubmissionResponse {
   id: number;
   assignmentId: number;
+  assignmentTitle?: string;
   userId: number;
   username?: string;
   score: number;
-  totalQuestions: number;
+  totalQuestions?: number;
+  correctAnswers?: number;
+  durationSeconds?: number;
+  attemptNumber?: number;
   submittedAt?: string;
+  completedAt?: string;
+  status?: string;
+  answersJson?: string;
+  allowReviewAnswers?: boolean;
   answers?: Array<{ flashcardId: number; correct: boolean }>;
 }
 
@@ -171,6 +196,9 @@ export const classroomRouter = {
       description: z.string().optional(),
       studySetId: z.number().optional(),
       dueDate: z.string().optional(),
+      timeLimitMinutes: z.number().int().positive().optional(),
+      allowReviewAnswers: z.boolean().optional(),
+      maxAttempts: z.number().int().positive().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
       const { classId, ...rest } = input;
@@ -181,14 +209,28 @@ export const classroomRouter = {
   submitAssignment: protectedProcedure
     .input(z.object({
       assignmentId: z.number(),
+      score: z.number(),
+      correctAnswers: z.number().optional(),
+      totalQuestions: z.number().optional(),
+      durationSeconds: z.number().optional(),
       answers: z.array(z.object({
         flashcardId: z.number(),
-        answer: z.string(),
-      })),
+        term: z.string(),
+        userAnswer: z.string(),
+        correctAnswer: z.string(),
+        isCorrect: z.boolean(),
+      })).optional(),
     }))
     .mutation(async ({ input, ctx }) => {
       const { assignmentId, ...rest } = input;
-      return bePost<SubmissionResponse>(`/api/classes/assignments/${assignmentId}/submit`, rest, ctx.token);
+      return bePost<{ message: string }>(`/api/classes/assignments/${assignmentId}/submit`, rest, ctx.token);
+    }),
+
+  /** GET /api/classes/assignments/{id} — assignment detail for student */
+  assignmentById: protectedProcedure
+    .input(z.object({ assignmentId: z.number() }))
+    .query(async ({ input, ctx }) => {
+      return beGet<AssignmentResponse>(`/api/classes/assignments/${input.assignmentId}`, ctx.token);
     }),
 
   /** GET /api/classes/{id}/studysets */
@@ -214,11 +256,15 @@ export const classroomRouter = {
       return beDelete(`/api/classes/${input.classId}/studysets/${input.studySetId}`, ctx.token);
     }),
 
-  /** GET /api/classes/assignments/{id}/my-result */
-  myResult: protectedProcedure
+  /** GET /api/classes/assignments/{id}/my-attempts — student's attempt history */
+  myAttempts: protectedProcedure
     .input(z.object({ assignmentId: z.number() }))
     .query(async ({ input, ctx }) => {
-      return beGet<SubmissionResponse>(`/api/classes/assignments/${input.assignmentId}/my-result`, ctx.token);
+      const data = await beGet<SubmissionResponse[]>(
+        `/api/classes/assignments/${input.assignmentId}/my-attempts`,
+        ctx.token,
+      );
+      return data ?? [];
     }),
 
   /** GET /api/classes/assignments/{id}/submissions  (teacher only) */
