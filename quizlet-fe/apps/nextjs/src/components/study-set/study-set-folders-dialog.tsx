@@ -62,7 +62,7 @@ const StudySetFoldersDialog = () => {
               return (
                 <StudySetFolderCard
                   key={folder.id}
-                  isIn={studySet.folders.some((f) => f.id === folder.id)}
+                  isIn={studySet.folders?.some((f) => f.id === folder.id) ?? false}
                   folder={folder}
                   studySetId={id}
                 />
