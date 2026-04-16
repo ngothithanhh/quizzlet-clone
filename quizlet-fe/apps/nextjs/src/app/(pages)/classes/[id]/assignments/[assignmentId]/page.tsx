@@ -7,6 +7,7 @@ import {
   ArrowLeft,
   CheckCircle2,
   Clock,
+  Edit2,
   GraduationCap,
   History,
   Loader2,
@@ -105,7 +106,8 @@ export default function AssignmentDetailPage() {
     if (timeLeft <= 0) { void handleSubmit(true); return; }
     timerRef.current = setTimeout(() => setTimeLeft((t) => (t !== null ? t - 1 : null)), 1000);
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
-  }, [timeLeft, submitted]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timeLeft, submitted, handleSubmit]);
 
   const handleAnswer = useCallback((flashcardId: number, term: string, userAnswer: string, correctAnswer: string) => {
     // Case-insensitive + trim whitespace comparison
@@ -145,55 +147,7 @@ export default function AssignmentDetailPage() {
   // TEACHER VIEW
   // ──────────────────────────────────────────────────────────────────────────
   if (isTeacher) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50 dark:from-gray-950 dark:to-gray-900 py-8">
-        <div className="container max-w-4xl">
-          <button onClick={() => router.push(`/classes/${classId}`)} className="flex items-center gap-2 text-sm text-gray-500 hover:text-indigo-600 mb-6 transition-colors">
-            <ArrowLeft size={15} /> Quay lại lớp học
-          </button>
-          <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-xl p-6 mb-6">
-            <div className="flex items-center gap-4 mb-2">
-              <div className="w-12 h-12 rounded-2xl bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
-                <Trophy size={22} className="text-indigo-600" />
-              </div>
-              <div>
-                <h1 className="text-xl font-black text-gray-900 dark:text-white">{assignment?.title}</h1>
-                <p className="text-sm text-gray-400">
-                  {assignment?.timeLimitMinutes ? `⏱ ${assignment.timeLimitMinutes} phút` : "Không giới hạn thời gian"}
-                  {assignment?.maxAttempts ? ` • Tối đa ${assignment.maxAttempts} lần nộp` : ""}
-                  {" • "}
-                  {assignment?.allowReviewAnswers ? "✅ Cho xem đáp án" : "🚫 Không cho xem đáp án"}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <h2 className="font-bold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
-            <GraduationCap size={18} /> Kết quả học sinh ({submissions.length} lượt nộp)
-          </h2>
-
-          {loadingSubmissions ? (
-            <div className="flex justify-center py-10"><Loader2 size={24} className="animate-spin text-indigo-500" /></div>
-          ) : submissions.length === 0 ? (
-            <div className="text-center py-16 text-gray-400 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800">
-              <Clock size={36} className="mx-auto mb-3 opacity-30" />
-              <p className="text-sm">Chưa có học sinh nào nộp bài</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {submissions.map((sub) => {
-                const pct = sub.score ?? 0;
-                let details: any[] = [];
-                try { details = sub.answersJson ? JSON.parse(sub.answersJson) : []; } catch {}
-                return (
-                  <TeacherSubmissionRow key={sub.id} sub={sub} pct={pct} details={details} />
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </div>
-    );
+    return <TeacherView assignment={assignment} classId={classId} submissions={submissions} loadingSubmissions={loadingSubmissions} aId={aId} />;
   }
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -313,6 +267,7 @@ export default function AssignmentDetailPage() {
               index={index}
               card={card}
               userAnswer={answers[card.id]?.userAnswer}
+              submitted={submitted}
               onAnswer={handleAnswer}
               onTFAnswer={handleTFAnswer}
             />
@@ -323,7 +278,145 @@ export default function AssignmentDetailPage() {
   );
 }
 
-// ── Sub-components ─────────────────────────────────────────────────────────────
+// ── Teacher View (extracted) ────────────────────────────────────────────────
+function TeacherView({ assignment, classId, submissions, loadingSubmissions, aId }: any) {
+  const router = useRouter();
+  const utils = api.useUtils();
+  const [editOpen, setEditOpen] = useState(false);
+  const [editTitle, setEditTitle] = useState("");
+  const [editDesc, setEditDesc] = useState("");
+  const [editLimit, setEditLimit] = useState("");
+  const [editMaxAttempts, setEditMaxAttempts] = useState("");
+  const [editAllowReview, setEditAllowReview] = useState(true);
+
+  const openEdit = () => {
+    setEditTitle(assignment?.title ?? "");
+    setEditDesc(assignment?.description ?? "");
+    setEditLimit(assignment?.timeLimitMinutes?.toString() ?? "");
+    setEditMaxAttempts(assignment?.maxAttempts?.toString() ?? "");
+    setEditAllowReview(assignment?.allowReviewAnswers ?? true);
+    setEditOpen(true);
+  };
+
+  const updateMutation = api.classroom.updateAssignment.useMutation({
+    onSuccess: () => {
+      void utils.classroom.assignmentById.invalidate({ assignmentId: aId });
+      void utils.classroom.assignments.invalidate({ classId: assignment?.classId });
+      setEditOpen(false);
+    },
+  });
+
+  const handleUpdate = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editTitle.trim()) return;
+    updateMutation.mutate({
+      assignmentId: aId,
+      title: editTitle.trim(),
+      description: editDesc.trim() || undefined,
+      timeLimitMinutes: editLimit ? parseInt(editLimit) : undefined,
+      maxAttempts: editMaxAttempts ? parseInt(editMaxAttempts) : undefined,
+      allowReviewAnswers: editAllowReview,
+    });
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50 dark:from-gray-950 dark:to-gray-900 py-8">
+      <div className="container max-w-4xl">
+        <button onClick={() => router.push(`/classes/${assignment?.classId ?? classId}`)} className="flex items-center gap-2 text-sm text-gray-500 hover:text-indigo-600 mb-6 transition-colors">
+          <ArrowLeft size={15} /> Quay lại lớp học
+        </button>
+        <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-xl p-6 mb-6">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center flex-shrink-0">
+              <Trophy size={22} className="text-indigo-600" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h1 className="text-xl font-black text-gray-900 dark:text-white">{assignment?.title}</h1>
+              <p className="text-sm text-gray-400">
+                {assignment?.timeLimitMinutes ? `⏱ ${assignment.timeLimitMinutes} phút` : "Không giới hạn thời gian"}
+                {assignment?.maxAttempts ? ` • Tối đa ${assignment.maxAttempts} lần nộp` : ""}
+                {" • "}{assignment?.allowReviewAnswers ? "✅ Cho xem đáp án" : "🚫 Không cho xem đáp án"}
+              </p>
+            </div>
+            <button onClick={openEdit} className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-xl border border-gray-200 dark:border-gray-700 hover:border-indigo-400 text-gray-500 hover:text-indigo-600 transition-colors flex-shrink-0">
+              <Edit2 size={13} /> Sửa
+            </button>
+          </div>
+        </div>
+
+        {/* Edit dialog */}
+        {editOpen && (
+          <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md p-6">
+              <h2 className="font-black text-lg text-gray-900 dark:text-white mb-4">Chỉnh sửa bài kiểm tra</h2>
+              <form onSubmit={handleUpdate} className="space-y-3">
+                <div>
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Tên bài kiểm tra</label>
+                  <input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} required
+                    className="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-sm outline-none focus:border-indigo-400" />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Mô tả</label>
+                  <input value={editDesc} onChange={(e) => setEditDesc(e.target.value)}
+                    className="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-sm outline-none focus:border-indigo-400" />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Thời gian (phút)</label>
+                    <input type="number" min={1} value={editLimit} onChange={(e) => setEditLimit(e.target.value)}
+                      placeholder="Không giới hạn"
+                      className="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-sm outline-none focus:border-indigo-400" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Số lần nộp tối đa</label>
+                    <input type="number" min={1} value={editMaxAttempts} onChange={(e) => setEditMaxAttempts(e.target.value)}
+                      placeholder="Không giới hạn"
+                      className="mt-1 w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-sm outline-none focus:border-indigo-400" />
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input type="checkbox" id="allow-review" checked={editAllowReview} onChange={(e) => setEditAllowReview(e.target.checked)} className="rounded" />
+                  <label htmlFor="allow-review" className="text-sm text-gray-700 dark:text-gray-300">Cho học sinh xem đáp án sau khi nộp</label>
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <button type="button" onClick={() => setEditOpen(false)}
+                    className="flex-1 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-sm text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800">
+                    Huỷ
+                  </button>
+                  <button type="submit" disabled={updateMutation.isPending}
+                    className="flex-1 py-2 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 disabled:opacity-60">
+                    {updateMutation.isPending ? "Đang lưu..." : "Lưu thay đổi"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        <h2 className="font-bold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
+          <GraduationCap size={18} /> Kết quả học sinh ({submissions.length} lượt nộp)
+        </h2>
+        {loadingSubmissions ? (
+          <div className="flex justify-center py-10"><Loader2 size={24} className="animate-spin text-indigo-500" /></div>
+        ) : submissions.length === 0 ? (
+          <div className="text-center py-16 text-gray-400 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800">
+            <Clock size={36} className="mx-auto mb-3 opacity-30" />
+            <p className="text-sm">Chưa có học sinh nào nộp bài</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {submissions.map((sub: any) => {
+              const pct = sub.score ?? 0;
+              let details: any[] = [];
+              try { details = sub.answersJson ? JSON.parse(sub.answersJson) : []; } catch {}
+              return <TeacherSubmissionRow key={sub.id} sub={sub} pct={pct} details={details} />;
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 function ResultView({ submittedData, assignment, onBack, classId }: any) {
   return (
@@ -448,28 +541,27 @@ function TeacherSubmissionRow({ sub, pct, details }: any) {
 }
 
 function AssignmentQuestionCard({
-  index, card, userAnswer, onAnswer, onTFAnswer,
+  index, card, userAnswer, submitted, onAnswer, onTFAnswer,
 }: {
   index: number;
   card: any;
   userAnswer?: string;
+  submitted: boolean;
   onAnswer: (id: number, term: string, userAnswer: string, correctAnswer: string) => void;
   onTFAnswer: (card: any, radioValue: string) => void;
 }) {
   const qNum = `Câu ${index + 1}`;
 
   if (card.type === "tf") {
-    // card.answer = definition displayed (may be correct or wrong)
-    // card.definition = the real definition
-    const correctRadio = card.answer === card.definition ? "true" : "false";
     return (
       <div>
         <p className="text-xs text-gray-400 mb-2 font-medium">{qNum} • Đúng / Sai</p>
         <TrueFalseCard
           index={index}
           term={card.term}
-          answer={card.answer}        // displayed definition (may be wrong)
-          definition={card.answer === card.definition ? card.definition : undefined} // tip: pass definition only when correct so TrueFalseCard colours work
+          answer={card.answer}
+          // Only reveal correct answer coloring AFTER submission
+          definition={submitted ? card.definition : undefined}
           userAnswer={userAnswer}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => onTFAnswer(card, e.target.value)}
         />
@@ -485,7 +577,8 @@ function AssignmentQuestionCard({
           index={index}
           term={card.term}
           answers={card.answers ?? []}
-          definition={card.definition}
+          // Only reveal correct answer coloring AFTER submission
+          definition={submitted ? card.definition : undefined}
           userAnswer={userAnswer}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
             onAnswer(card.id, card.term, e.target.value, card.definition)
@@ -501,8 +594,10 @@ function AssignmentQuestionCard({
       <p className="text-xs text-gray-400 mb-2 font-medium">{qNum} • Tự điền</p>
       <WrittenCard
         term={card.term}
-        definition={card.definition}
+        // Only show correct answer hint AFTER submission
+        definition={submitted ? card.definition : undefined}
         userAnswer={userAnswer ?? ""}
+        readOnly={submitted}
         onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
           onAnswer(card.id, card.term, e.target.value, card.definition)
         }

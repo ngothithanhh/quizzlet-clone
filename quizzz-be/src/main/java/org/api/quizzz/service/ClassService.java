@@ -35,6 +35,8 @@ public interface ClassService {
 
     AssignmentResponse createAssignment(Long classId, AssignmentRequest req);
 
+    AssignmentResponse updateAssignment(Long assignmentId, AssignmentRequest req);
+
     List<AssignmentResponse> getAssignmentsByClass(Long classId);
 
     AssignmentResponse getAssignmentById(Long assignmentId);

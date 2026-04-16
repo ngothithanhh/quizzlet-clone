@@ -19,53 +19,53 @@ export default function StudySetFolderCard({
       const prevData = utils.studySet.byId.getData({ id: studySetId });
 
       utils.studySet.byId.setData({ id: studySetId }, (old) => {
-        if (!old) {
-          return;
-        }
-
+        if (!old) return;
         return {
           ...old,
-          folders: [...old.folders, { id }],
+          folders: [...(old.folders ?? []), { id }],
         };
       });
 
-      return {
-        prevData,
-      };
+      return { prevData };
+    },
+    onError(_err, _vars, ctx) {
+      // rollback on error
+      if (ctx?.prevData) {
+        utils.studySet.byId.setData({ id: studySetId }, ctx.prevData);
+      }
     },
   });
+
   const removeSet = api.folder.removeSet.useMutation({
     onSettled,
     onMutate() {
       const prevData = utils.studySet.byId.getData({ id: studySetId });
 
       utils.studySet.byId.setData({ id: studySetId }, (old) => {
-        if (!old) {
-          return;
-        }
-
+        if (!old) return;
         return {
           ...old,
-          folders: old.folders.filter((folder) => folder.id !== id),
+          folders: (old.folders ?? []).filter((folder) => folder.id !== id),
         };
       });
 
-      return {
-        prevData,
-      };
+      return { prevData };
+    },
+    onError(_err, _vars, ctx) {
+      if (ctx?.prevData) {
+        utils.studySet.byId.setData({ id: studySetId }, ctx.prevData);
+      }
     },
   });
 
   async function onSettled() {
-    await utils.studySet.byId.invalidate({ id });
+    // Invalidate the studySet so `folders` list is fresh from server
+    await utils.studySet.byId.invalidate({ id: studySetId });
+    await utils.folder.allByUser.invalidate();
   }
 
   function onClick() {
-    const params = {
-      folderId: id,
-      studySetId,
-    };
-
+    const params = { folderId: id, studySetId };
     if (isIn) {
       removeSet.mutate(params);
     } else {

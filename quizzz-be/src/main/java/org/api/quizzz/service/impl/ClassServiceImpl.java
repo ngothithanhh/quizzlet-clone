@@ -339,6 +339,42 @@ public class ClassServiceImpl implements ClassService {
 
     @Override
     @Transactional
+    public AssignmentResponse updateAssignment(Long assignmentId, AssignmentRequest req) {
+        Long userId = SecurityUtils.getCurrentUserId();
+
+        Assignment assignment = assignmentRepo.findById(assignmentId)
+                .orElseThrow(() -> new RuntimeException("Assignment not found"));
+
+        ClassMember member = memberRepo.findByClassroomIdAndUserId(
+                assignment.getClassroom().getId(), userId
+        ).orElseThrow(() -> new RuntimeException("Not a member of this class"));
+
+        if (!member.isCreator() && member.getRole() != ClassRole.TEACHER)
+            throw new RuntimeException("Forbidden: Only teacher or creator can edit assignment");
+
+        if (req.getTitle() != null && !req.getTitle().isBlank())
+            assignment.setTitle(req.getTitle());
+        if (req.getDescription() != null)
+            assignment.setDescription(req.getDescription());
+        if (req.getDueDate() != null)
+            assignment.setDueDate(req.getDueDate());
+        if (req.getTimeLimitMinutes() != null)
+            assignment.setTimeLimitMinutes(req.getTimeLimitMinutes());
+        if (req.getAllowReviewAnswers() != null)
+            assignment.setAllowReviewAnswers(req.getAllowReviewAnswers());
+        if (req.getMaxAttempts() != null)
+            assignment.setMaxAttempts(req.getMaxAttempts());
+        if (req.getStudySetId() != null) {
+            StudySet ss = studySetRepo.findById(req.getStudySetId())
+                    .orElseThrow(() -> new RuntimeException("StudySet not found"));
+            assignment.setStudySet(ss);
+        }
+
+        return ClassMapper.toAssignmentResponse(assignmentRepo.save(assignment));
+    }
+
+    @Override
+    @Transactional
     public String submitAssignment(Long assignmentId, SubmitAssignmentRequest req) {
         Long userId = SecurityUtils.getCurrentUserId();
 

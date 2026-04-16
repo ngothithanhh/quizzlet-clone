@@ -195,6 +195,23 @@ export const classroomRouter = {
       return bePost<AssignmentResponse>(`/api/classes/${classId}/assignments`, rest, ctx.token);
     }),
 
+  /** PUT /api/classes/assignments/{id} */
+  updateAssignment: protectedProcedure
+    .input(z.object({
+      assignmentId: z.number(),
+      title: z.string().min(1).optional(),
+      description: z.string().optional(),
+      studySetId: z.number().optional(),
+      dueDate: z.string().optional(),
+      timeLimitMinutes: z.number().int().positive().nullable().optional(),
+      allowReviewAnswers: z.boolean().optional(),
+      maxAttempts: z.number().int().positive().nullable().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const { assignmentId, ...rest } = input;
+      return bePut<AssignmentResponse>(`/api/classes/assignments/${assignmentId}`, rest, ctx.token);
+    }),
+
   /** POST /api/classes/assignments/{id}/submit */
   submitAssignment: protectedProcedure
     .input(z.object({

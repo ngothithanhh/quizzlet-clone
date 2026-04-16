@@ -105,6 +105,13 @@ public class ClassroomController {
         return ResponseEntity.status(HttpStatus.CREATED).body(classService.createAssignment(classId, req));
     }
 
+    /** 7.5b Cập nhật bài kiểm tra */
+    @PutMapping("/assignments/{assignmentId}")
+    public ResponseEntity<AssignmentResponse> updateAssignment(@PathVariable Long assignmentId,
+                                                               @RequestBody AssignmentRequest req) {
+        return ResponseEntity.ok(classService.updateAssignment(assignmentId, req));
+    }
+
     /** 7.13 Lấy danh sách bài kiểm tra theo lớp */
     @GetMapping("/{classId}/assignments")
     public ResponseEntity<List<AssignmentResponse>> getAssignments(@PathVariable Long classId) {
