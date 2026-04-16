@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Image from "next/image";
-import { User } from "lucide-react";
+import { Loader2, User } from "lucide-react";
 
 import { useAuth } from "~/contexts/auth-context";
 import { Avatar, AvatarFallback, AvatarImage } from "@acme/ui/avatar";
@@ -10,8 +10,8 @@ import { Card, CardContent } from "@acme/ui/card";
 import Cropper from "@acme/ui/cropper";
 import { Dropzone } from "@acme/ui/dropzone";
 import { Separator } from "@acme/ui/separator";
+import { toast } from "@acme/ui/toast";
 
-import { uploadObject } from "~/lib/aws";
 import { api } from "~/trpc/react";
 
 const profilePictures = [
@@ -23,25 +23,46 @@ const profilePictures = [
 ];
 
 const EditProfilePicture = () => {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [image, setImage] = useState<string | undefined>(
     user?.image ?? user?.avatarUrl ?? undefined,
   );
+  const [uploading, setUploading] = useState(false);
+
   const { mutate } = api.user.update.useMutation({
     onSuccess(data) {
-      setImage(data.image ?? undefined);
+      setImage(data.avatarUrl ?? undefined);
+      toast.success("Đã cập nhật ảnh đại diện!");
+      refreshUser?.();
+    },
+    onError: () => toast.error("Cập nhật ảnh thất bại"),
+  });
+
+  const uploadMutation = api.externalApi.uploadImage.useMutation({
+    onSuccess(data) {
+      mutate({ avatarUrl: data.url });
+      setUploading(false);
+    },
+    onError() {
+      toast.error("Upload ảnh thất bại");
+      setUploading(false);
     },
   });
 
-  const updateUserImage = (image: string) => {
-    mutate({
-      image,
-    });
+  const updateUserImage = (avatarUrl: string) => {
+    mutate({ avatarUrl });
   };
 
   const uploadAndUpdate = async (file: File) => {
-    const { url } = await uploadObject(file);
-    updateUserImage(url);
+    setUploading(true);
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = (reader.result as string).split(",")[1];
+      if (base64) {
+        uploadMutation.mutate({ base64, fileName: file.name });
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
   return (
@@ -69,14 +90,20 @@ const EditProfilePicture = () => {
                 alt=""
                 width={48}
                 height={48}
-                className="cursor-pointer rounded-full border"
+                className="cursor-pointer rounded-full border hover:ring-2 hover:ring-indigo-400 transition-all"
               />
             ))}
           </div>
           <Separator className="my-6" />
-          <Cropper aspect={1 / 1} afterCrop={uploadAndUpdate}>
-            <Dropzone />
-          </Cropper>
+          {uploading ? (
+            <div className="flex items-center gap-2 text-sm text-gray-500">
+              <Loader2 size={16} className="animate-spin" /> Đang tải ảnh lên...
+            </div>
+          ) : (
+            <Cropper aspect={1 / 1} afterCrop={uploadAndUpdate}>
+              <Dropzone />
+            </Cropper>
+          )}
         </CardContent>
       </Card>
     </div>

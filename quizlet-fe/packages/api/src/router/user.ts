@@ -25,7 +25,7 @@ export const userRouter = {
 
   /** PUT /api/users/me */
   update: protectedProcedure
-    .input(z.object({ image: z.string().optional(), username: z.string().optional() }))
+    .input(z.object({ avatarUrl: z.string().optional(), username: z.string().optional() }))
     .mutation(async ({ input, ctx }) => {
       return bePut<UserProfileResponse>("/api/users/me", input, ctx.token);
     }),

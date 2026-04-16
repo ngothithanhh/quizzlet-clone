@@ -43,13 +43,15 @@ const OPTIONS = [
 
 export default function StudySetVisibilityToggle({
   studySetId,
-  isPublic,
+  isPublic: initialIsPublic,
 }: StudySetVisibilityToggleProps) {
   const [open, setOpen] = useState(false);
+  const [currentIsPublic, setCurrentIsPublic] = useState(initialIsPublic);
   const utils = api.useUtils();
 
   const mutation = api.studySet.setVisibility.useMutation({
     onSuccess: (data) => {
+      setCurrentIsPublic(data.isPublic);
       void utils.studySet.invalidate();
       const label = data.isPublic ? "Công khai" : "Riêng tư";
       toast.success(`Đã đổi chế độ sang ${label}`);
@@ -58,7 +60,7 @@ export default function StudySetVisibilityToggle({
     onError: (err) => toast.error(err.message ?? "Không thể thay đổi chế độ hiển thị"),
   });
 
-  const current = OPTIONS.find((o) => o.value === isPublic) ?? OPTIONS[1];
+  const current = OPTIONS.find((o) => o.value === currentIsPublic) ?? OPTIONS[1];
   const CurrentIcon = current.icon;
 
   return (
@@ -87,7 +89,7 @@ export default function StudySetVisibilityToggle({
 
         {OPTIONS.map((opt) => {
           const Icon = opt.icon;
-          const isSelected = opt.value === isPublic;
+          const isSelected = opt.value === currentIsPublic;
           const isPending = mutation.isPending && mutation.variables?.isPublic === opt.value;
 
           return (
