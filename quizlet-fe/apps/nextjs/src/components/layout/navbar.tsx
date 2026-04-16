@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { Button } from "@acme/ui/button";
+import { ThemeToggle } from "@acme/ui/theme";
 
 import { useAuth } from "~/contexts/auth-context";
 import CreateOptionsDropdown from "./create-options-dropdown";
@@ -48,6 +49,7 @@ const Navbar = () => {
         <CreateOptionsDropdown />
       </div>
       <div className="flex items-center gap-2">
+        <ThemeToggle />
         {isLoggedIn && user && <NotificationBell />}
         {isLoggedIn && user ? <UserDropdown /> : <SignInButton />}
       </div>

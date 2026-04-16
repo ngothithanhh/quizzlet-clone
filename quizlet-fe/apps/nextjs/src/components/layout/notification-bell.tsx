@@ -178,15 +178,19 @@ const NotificationBell = () => {
                     </span>
                   </div>
 
-                  {/* Mark read button */}
+                  {/* Mark read button — always visible for unread */}
                   {!n.isRead && (
                     <button
                       onClick={() => handleMarkRead(n.id)}
                       disabled={markRead.isPending}
-                      className="flex-shrink-0 opacity-0 group-hover:opacity-100 w-7 h-7 flex items-center justify-center rounded-full hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-all"
+                      className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-full hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-all text-indigo-400 hover:text-indigo-600"
                       title="Đánh dấu đã đọc"
                     >
-                      <Check size={13} className="text-indigo-600" />
+                      {markRead.isPending ? (
+                        <Loader2 size={12} className="animate-spin" />
+                      ) : (
+                        <Check size={13} />
+                      )}
                     </button>
                   )}
                 </div>

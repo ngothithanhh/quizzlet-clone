@@ -54,9 +54,6 @@ const UserDropdown = () => {
         <Link href="/settings">
           <DropdownMenuItem>Settings</DropdownMenuItem>
         </Link>
-        <Link href="/settings#dark-mode">
-          <DropdownMenuItem>Dark mode</DropdownMenuItem>
-        </Link>
         <DropdownMenuItem
           className="cursor-pointer"
           onClick={() => void logout()}
