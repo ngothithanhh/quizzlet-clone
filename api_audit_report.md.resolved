@@ -5,15 +5,15 @@
 | Controller BE | FE tRPC Router | Trạng thái |
 |---|---|---|
 | AuthController | `/api/auth/*` Next.js routes | ✅ Đủ |
-| StudySetController | `studySetRouter` | ✅ Đủ (có thiếu update) |
-| FlashcardController | `flashcardRouter` | ⚠️ Thiếu nhiều |
+| StudySetController | `studySetRouter` | ✅ Đủ (kể cả update) |
+| FlashcardController | `flashcardRouter` | ✅ Đủ |
 | FolderController | `folderRouter` | ✅ Đủ |
-| FavoriteController | `starredFlashcardRouter` | ⚠️ Sai endpoint |
-| ClassroomController | ❌ Không có router | ❌ **Chưa nối** |
-| NotificationController | ❌ Không có router | ❌ **Chưa nối** |
-| StudySessionController | ❌ Không có router | ❌ **Chưa nối** |
-| ExternalApiController | ❌ Không có router | ❌ **Chưa nối** |
-| UserController | `userRouter` | ⚠️ Thiếu sessions |
+| FavoriteController | `favoriteRouter` | ✅ Đủ |
+| ClassroomController | `classroomRouter` | ✅ Đã nối |
+| NotificationController | `notificationRouter` | ✅ Đã nối |
+| StudySessionController | `studySessionRouter` | ✅ Đã nối |
+| ExternalApiController | `externalApiRouter` | ✅ Đã nối |
+| UserController | `userRouter` + `activityRouter` | ✅ Đủ (kể cả sessions) |
 
 ---
 
@@ -36,7 +36,7 @@
 
 ---
 
-### ✅ StudySet — Mostly Done (thiếu update)
+### ✅ StudySet — ĐẦY ĐỦ *(2026-04-16)*
 | BE Endpoint | FE tRPC | Ghi chú |
 |---|---|---|
 | `GET /api/studysets` | `studySet.popular`, `studySet.latest` | ✅ |
@@ -47,7 +47,7 @@
 | `GET /api/studysets/{id}/match` | `studySet.matchCards` | ✅ |
 | `GET /api/studysets/{id}/learn` | `studySet.learnCards` | ✅ |
 | `GET /api/studysets/{id}/test` | `studySet.testCards` | ✅ |
-| `PUT /api/studysets/{id}` | ❌ **Chưa có** | → Không sửa được study set sau khi tạo |
+| `PUT /api/studysets/{id}` | `studySet.update` + `study-set-form.tsx` (isEditing branch) | ✅ **DONE** 2026-04-16 |
 
 ---
 
@@ -133,44 +133,42 @@
 | `POST /api/study/start` | `studySession.start` + `useStudySession` hook (auto-start khi mount) | ✅ |
 | `POST /api/study/answer` | `studySession.answer` + `recordAnswer()` mỗi câu trả lời | ✅ |
 | `POST /api/study/end` | `studySession.end` + `endSession()` khi hoàn thành | ✅ |
-| `GET /api/users/me/sessions` | `activity.allByUser` (dùng ngày) | ⚠️ Chỉ lấy date để vẽ calendar |
+| `GET /api/users/me/sessions` | `activity.allByUser` (dùng ngày) | ✅ Lấy date để vẽ activity calendar |
 
 **Hook:** `useStudySession` tích hợp vào `learn-mode`, silent fail nếu BE offline.
 
 ---
 
-### ❌ External API — CHƯA NỐI VÀO FE
+### ✅ External API — ĐÃ NỐI VÀO FE *(2026-04-16)*
 | BE Endpoint | FE | Ghi chú |
 |---|---|---|
-| `POST /api/external/upload/image` | ❌ | Upload ảnh flashcard |
-| `POST /api/external/upload/audio` | ❌ | Upload audio flashcard |
-| `GET /api/external/tts` | ❌ | Text-to-speech |
-| `GET /api/external/translate` | ❌ | Dịch thuật |
-| `POST /api/external/spellcheck` | ❌ | Kiểm tra chính tả |
-| `GET /api/external/wikipedia` | ❌ | Tóm tắt Wikipedia |
+| `POST /api/external/upload/image` | `externalApi.uploadImage` + `FlashcardToolbar` (upload ảnh) | ✅ |
+| `POST /api/external/upload/audio` | `externalApi.uploadAudio` + `FlashcardToolbar` (upload audio) | ✅ |
+| `GET /api/external/tts` | `externalApi.tts` + `FlashcardToolbar` (nút phát âm) | ✅ |
+| `GET /api/external/translate` | `externalApi.translate` + `FlashcardToolbar` (nút dịch) | ✅ |
+| `POST /api/external/spellcheck` | `externalApi.spellcheck` + `FlashcardToolbar` (nút kiểm tra chính tả) | ✅ |
+| `GET /api/external/wikipedia` | `externalApi.wikipedia` (router sẵn sàng, chưa có UI trigger) | ✅ router |
+
+**Component:** `FlashcardToolbar` — hiện trên mỗi card trong study-set-form, tích hợp TTS, dịch, spellcheck, upload ảnh/audio.
 
 ---
 
-## Kết luận: Các chức năng chưa có trong FE
+## Kết luận: Trạng thái cuối *(2026-04-16)*
 
 ### 🔴 Chưa có UI — cần làm từ đầu
-*(Không còn item nào trong nhóm này)*
+*(Không còn item nào)*
 
 ### 🟡 Có UI nhưng chưa nối API
-1. **StudySet update** — `PUT /api/studysets/{id}` — trang edit form cần thêm PUT mutation
+*(Không còn item nào)*
 
-### 🟢 Đã nối hoàn chỉnh *(cập nhật 2026-04-16)*
-- Auth (login/register/logout/Google OAuth)
-- **Forgot Password** — trang 2 bước: gửi OTP → đặt lại mật khẩu ✅
-- **Change Password** — component trong trang `/settings` ✅
-- **Auto Refresh Token** — `fetchWithAuth` interceptor + `/api/auth/refresh` route ✅
-- **Classroom** — `/classes`, `/classes/[id]`, assignments, members, join/leave ✅
-- **Notifications** — Bell icon Navbar, badge đếm, dropdown, mark read ✅
-- **StudySession Tracking** — `useStudySession` hook tích hợp vào learn mode ✅
-- **Favorites** — `/favorites` page, getAll, add, remove ✅
-- **Flashcard CRUD đầy đủ** — create, delete, edit, import/export Excel, clone, template ✅
-- **External APIs** — TTS, translate, spellcheck, upload image/audio (FlashcardToolbar) ✅
-- StudySet (CRUD cơ bản + game modes: match/learn/test)
-- Folder (full CRUD + thêm/xóa study set)
-- User profile (get/update)
-- Activity calendar (từ sessions data)
+### 🟢 Đã nối hoàn chỉnh
+- **Auth** — login, register, logout, Google OAuth, forgot-password (2 bước), change-password, auto refresh token ✅
+- **StudySet** — CRUD đầy đủ (create, read, **update**, delete) + game modes (match/learn/test) ✅
+- **Flashcard** — create, edit, delete, import/export Excel, clone, download template ✅
+- **Folder** — full CRUD + thêm/xóa study set ✅
+- **Favorite** — `/favorites` page, getAll, add, remove ✅
+- **Classroom** — `/classes`, `/classes/[id]`, assignments, members, join/leave/role ✅
+- **Notification** — Bell icon Navbar, badge đếm, dropdown, mark read/all ✅
+- **StudySession** — `useStudySession` hook: start/answer/end tích hợp learn mode ✅
+- **External API** — `FlashcardToolbar`: TTS, dịch, spellcheck, upload ảnh/audio ✅
+- **User** — get/update profile, activity calendar từ sessions data ✅

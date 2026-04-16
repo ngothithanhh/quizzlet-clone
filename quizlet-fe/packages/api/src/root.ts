@@ -19,7 +19,6 @@ export const appRouter = createTRPCRouter({
   folder: folderRouter,
   flashcard: flashcardRouter,
   favorite: favoriteRouter,
-  favorite: favoriteRouter,
   starredFlashcard: starredFlashcardRouter,
   activity: activityRouter,
   classroom: classroomRouter,

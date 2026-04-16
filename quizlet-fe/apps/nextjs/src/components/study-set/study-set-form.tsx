@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Reorder } from "framer-motion";
-import { Download, LoaderCircle, PlusIcon, Trash2Icon } from "lucide-react";
+import { Download, LoaderCircle, Music, PlusIcon, Trash2Icon, X } from "lucide-react";
 
 import type { RouterOutputs } from "@acme/api";
 import type { StudySetValues } from "@acme/validators";
@@ -32,6 +32,7 @@ import { api } from "~/trpc/react";
 import CloneFlashcardsDialog from "./clone-flashcards-dialog";
 import FlashcardToolbar from "./flashcard-toolbar";
 import ImportExcelDialog from "./import-excel-dialog";
+import ImportExcelIntoForm from "./import-excel-into-form";
 
 const initialFlashcards = Array.from({ length: 4 }, (_, index) => ({
   term: "",
@@ -191,22 +192,23 @@ const StudySetForm = ({ defaultValues }: StudySetFormProps) => {
                 Flashcards
               </Label>
 
-              {/* Toolbar: Import | Export | Clone */}
+              {/* Toolbar: Import into form (ALWAYS) | Export + Clone (edit only) */}
               <div className="flex items-center gap-1.5">
+                <ImportExcelIntoForm
+                  label="Import Excel"
+                  onImport={(cards) => {
+                    form.setValue("flashcards", cards, { shouldValidate: true });
+                  }}
+                />
+
                 {isEditing && defaultValues?.id && (
                   <>
-                    <ImportExcelDialog
-                      studySetId={defaultValues.id}
-                      onSuccess={() => void utils.studySet.invalidate()}
-                    />
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
                       className="gap-2 text-xs h-8"
-                      onClick={() =>
-                        exportMutation.mutate({ studySetId: defaultValues.id! })
-                      }
+                      onClick={() => exportMutation.mutate({ studySetId: defaultValues.id! })}
                       disabled={exportMutation.isPending}
                     >
                       {exportMutation.isPending ? (
@@ -264,6 +266,20 @@ const StudySetForm = ({ defaultValues }: StudySetFormProps) => {
                                 { shouldValidate: true },
                               )
                             }
+                            onImageUrl={(url) =>
+                              form.setValue(
+                                `flashcards.${index}.imageUrl`,
+                                url,
+                                { shouldValidate: true },
+                              )
+                            }
+                            onAudioUrl={(url) =>
+                              form.setValue(
+                                `flashcards.${index}.audioUrl`,
+                                url,
+                                { shouldValidate: true },
+                              )
+                            }
                           />
                           <Separator orientation="vertical" className="h-5 mx-1" />
                           <Button
@@ -278,55 +294,96 @@ const StudySetForm = ({ defaultValues }: StudySetFormProps) => {
                         </div>
                       </div>
                     </CardHeader>
-                    <CardContent className="flex gap-4">
-                      <FormField
-                        control={form.control}
-                        name={`flashcards.${index}.term`}
-                        render={({ field }) => (
-                          <FormItem className="flex-1">
-                            <FormLabel>Term</FormLabel>
-                            <FormControl>
-                              <div
-                                data-value={field.value}
-                                className="grid after:invisible after:whitespace-pre-wrap after:border after:py-2 after:text-sm after:content-[attr(data-value)_'\n'] after:[grid-area:1/1]"
-                              >
-                                <Textarea
-                                  disabled={create.isPending}
-                                  placeholder="2+2"
-                                  {...field}
-                                  className="min-h-10 resize-none [grid-area:1/1]"
-                                  rows={1}
-                                />
-                              </div>
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name={`flashcards.${index}.definition`}
-                        render={({ field }) => (
-                          <FormItem className="flex-1">
-                            <FormLabel>Definition</FormLabel>
-                            <FormControl>
-                              <div
-                                data-value={field.value}
-                                className="grid after:invisible after:whitespace-pre-wrap after:border after:py-2 after:text-sm after:content-[attr(data-value)_'\n'] after:[grid-area:1/1]"
-                              >
-                                <Textarea
-                                  disabled={create.isPending}
-                                  placeholder="4"
-                                  {...field}
-                                  className="min-h-10 resize-none [grid-area:1/1]"
-                                  rows={1}
-                                />
-                              </div>
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                    <CardContent className="space-y-3">
+                      <div className="flex gap-4">
+                        <FormField
+                          control={form.control}
+                          name={`flashcards.${index}.term`}
+                          render={({ field }) => (
+                            <FormItem className="flex-1">
+                              <FormLabel>Term</FormLabel>
+                              <FormControl>
+                                <div
+                                  data-value={field.value}
+                                  className="grid after:invisible after:whitespace-pre-wrap after:border after:py-2 after:text-sm after:content-[attr(data-value)_'\n'] after:[grid-area:1/1]"
+                                >
+                                  <Textarea
+                                    disabled={create.isPending}
+                                    placeholder="2+2"
+                                    {...field}
+                                    className="min-h-10 resize-none [grid-area:1/1]"
+                                    rows={1}
+                                  />
+                                </div>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name={`flashcards.${index}.definition`}
+                          render={({ field }) => (
+                            <FormItem className="flex-1">
+                              <FormLabel>Definition</FormLabel>
+                              <FormControl>
+                                <div
+                                  data-value={field.value}
+                                  className="grid after:invisible after:whitespace-pre-wrap after:border after:py-2 after:text-sm after:content-[attr(data-value)_'\n'] after:[grid-area:1/1]"
+                                >
+                                  <Textarea
+                                    disabled={create.isPending}
+                                    placeholder="4"
+                                    {...field}
+                                    className="min-h-10 resize-none [grid-area:1/1]"
+                                    rows={1}
+                                  />
+                                </div>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+
+                      {/* Image preview */}
+                      {form.watch(`flashcards.${index}.imageUrl`) && (
+                        <div className="relative inline-block">
+                          <img
+                            src={form.watch(`flashcards.${index}.imageUrl`)}
+                            alt="flashcard image"
+                            className="h-24 w-auto rounded-md border object-cover"
+                          />
+                          <button
+                            type="button"
+                            onClick={() =>
+                              form.setValue(`flashcards.${index}.imageUrl`, undefined)
+                            }
+                            className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-white shadow"
+                          >
+                            <X size={10} />
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Audio preview */}
+                      {form.watch(`flashcards.${index}.audioUrl`) && (
+                        <div className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm">
+                          <Music size={14} className="shrink-0 text-pink-500" />
+                          <span className="flex-1 truncate text-xs text-muted-foreground">
+                            {form.watch(`flashcards.${index}.audioUrl`)?.split("/").pop()}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              form.setValue(`flashcards.${index}.audioUrl`, undefined)
+                            }
+                            className="text-destructive hover:opacity-80"
+                          >
+                            <X size={12} />
+                          </button>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 </Reorder.Item>

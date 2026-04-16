@@ -3,7 +3,7 @@ import { z } from "zod";
 
 import { StudySetSchema } from "@acme/validators";
 
-import { beDelete, beGet, bePost, bePut } from "../lib/beClient";
+import { beDelete, beGet, bePatch, bePost, bePut } from "../lib/beClient";
 import { protectedProcedure, publicProcedure } from "../trpc";
 import type { FlashcardResponse } from "./flashcard";
 
@@ -187,5 +187,32 @@ export const studySetRouter = {
           answers: string[];
         }[];
       }>(`/api/studysets/${input.id}/test`, ctx.token);
+    }),
+  /** GET /api/studysets?keyword=... — tìm kiếm study sets public */
+  search: publicProcedure
+    .input(z.object({ keyword: z.string() }))
+    .query(async ({ input, ctx }) => {
+      if (!input.keyword.trim()) return [];
+      const params = new URLSearchParams({ keyword: input.keyword });
+      const data = await beGet<any[]>(`/api/studysets?${params}`, ctx.token);
+      return (data || []).map(mapToFrontendStudySet);
+    }),
+
+  /** GET /api/studysets/me — study sets của user hiện tại (alias ngắn gọn hơn) */
+  allMine: protectedProcedure.query(async ({ ctx }) => {
+    const data = await beGet<any[]>("/api/studysets/me", ctx.token);
+    return (data || []).map(mapToFrontendStudySet);
+  }),
+
+  /** PATCH /api/studysets/{id}/visibility — đổi chế độ công khai/riêng tư */
+  setVisibility: protectedProcedure
+    .input(z.object({ id: z.number(), isPublic: z.boolean() }))
+    .mutation(async ({ input, ctx }) => {
+      const data = await bePatch<any>(
+        `/api/studysets/${input.id}/visibility`,
+        { isPublic: input.isPublic },
+        ctx.token,
+      );
+      return mapToFrontendStudySet(data);
     }),
 } satisfies TRPCRouterRecord;

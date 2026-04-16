@@ -125,4 +125,37 @@ export const flashcardRouter = {
     .mutation(async ({ input, ctx }) => {
       return bePost<CloneResult>("/api/flashcards/clone", input, ctx.token);
     }),
+
+  /**
+   * POST /api/flashcards/parse-excel
+   * Parse Excel và trả về [{term, definition}] — KHÔNG lưu DB.
+   * Dùng khi tạo mới Study Set từ file Excel để populate form fields.
+   */
+  parseExcel: protectedProcedure
+    .input(z.object({ fileBase64: z.string(), fileName: z.string() }))
+    .mutation(async ({ input, ctx }) => {
+      const binary = Buffer.from(input.fileBase64, "base64");
+      const blob = new Blob([binary], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+      const formData = new FormData();
+      formData.append("file", blob, input.fileName);
+
+      const BE_BASE_URL =
+        process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080/quizzlet-clone";
+      const headers: Record<string, string> = {};
+      if (ctx.token) headers["Authorization"] = `Bearer ${ctx.token}`;
+
+      const res = await fetch(`${BE_BASE_URL}/api/flashcards/parse-excel`, {
+        method: "POST",
+        headers,
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ message: res.statusText }));
+        throw new Error((err as any).message ?? "Parse failed");
+      }
+      return (await res.json()) as { term: string; definition: string }[];
+    }),
 } satisfies TRPCRouterRecord;

@@ -3,8 +3,6 @@ package org.api.quizzz.controller;
 import lombok.RequiredArgsConstructor;
 import org.api.quizzz.service.CloudinaryService;
 import org.api.quizzz.service.ExternalApiService;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -20,14 +18,16 @@ public class ExternalApiController {
     private final CloudinaryService cloudinaryService;
     private final ExternalApiService externalApiService;
 
-    // --- CLOUDINARY ---
+    // --- CLOUDINARY UPLOAD ---
 
+    /** POST /api/external/upload/image — Upload ảnh flashcard lên Cloudinary */
     @PostMapping(value = "/upload/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Map<String, String>> uploadImage(@RequestParam("file") MultipartFile file) {
         String url = cloudinaryService.uploadImage(file);
         return ResponseEntity.ok(Map.of("url", url));
     }
 
+    /** POST /api/external/upload/audio — Upload audio flashcard lên Cloudinary */
     @PostMapping(value = "/upload/audio", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Map<String, String>> uploadAudio(@RequestParam("file") MultipartFile file) {
         String url = cloudinaryService.uploadAudio(file);
@@ -36,58 +36,73 @@ public class ExternalApiController {
 
     // --- TEXT TO SPEECH ---
 
+    /**
+     * GET /api/external/tts?text=...&lang=...
+     * Trả về JSON { "audioUrl": "<url>" } thay vì raw bytes
+     * để frontend có thể lưu và phát lại dễ dàng.
+     */
     @GetMapping("/tts")
-    public ResponseEntity<byte[]> getTts(
+    public ResponseEntity<Map<String, String>> getTts(
             @RequestParam("text") String text,
-            @RequestParam(value = "lang", defaultValue = "en-US") String lang) {
-        
-        byte[] audioBytes = externalApiService.getTtsAudio(text, lang);
-        
-        HttpHeaders headers = new HttpHeaders();
-        // Giả lập dạng mpeg/audio
-        headers.setContentType(MediaType.valueOf("audio/mpeg"));
-        
-        return new ResponseEntity<>(audioBytes, headers, HttpStatus.OK);
+            @RequestParam(value = "lang", defaultValue = "en") String lang) {
+
+        String audioUrl = externalApiService.getTtsUrl(text, lang);
+        return ResponseEntity.ok(Map.of("audioUrl", audioUrl));
     }
 
     // --- TRANSLATE ---
 
+    /**
+     * GET /api/external/translate?text=...&from=...&to=...
+     * Trả về JSON { "result": "...", "from": "...", "to": "..." }
+     */
     @GetMapping("/translate")
     public ResponseEntity<Map<String, String>> translate(
             @RequestParam("text") String text,
-            @RequestParam(value = "source", defaultValue = "en") String source,
-            @RequestParam(value = "target", defaultValue = "vi") String target) {
-        
-        String translatedText = externalApiService.translate(text, source, target);
+            @RequestParam(value = "from", defaultValue = "auto") String from,
+            @RequestParam(value = "to", defaultValue = "vi") String to) {
+
+        String translatedText = externalApiService.translate(text, from, to);
         return ResponseEntity.ok(Map.of(
-                "original", text,
-                "translated", translatedText
+                "result", translatedText,
+                "from", from,
+                "to", to
         ));
     }
 
     // --- SPELL CHECK ---
 
+    /**
+     * POST /api/external/spellcheck
+     * Body: { "text": "...", "lang": "en" }
+     * Trả về { "correct": bool, "suggestions": [...], "corrected": "..." }
+     */
     @PostMapping("/spellcheck")
     public ResponseEntity<Map<String, Object>> spellCheck(
             @RequestBody Map<String, String> request) {
-        
+
         String text = request.getOrDefault("text", "");
-        String language = request.getOrDefault("language", "en-US");
-        
-        return ResponseEntity.ok(externalApiService.spellCheck(text, language));
+        String lang = request.getOrDefault("lang", "en-US");
+        return ResponseEntity.ok(externalApiService.spellCheck(text, lang));
     }
 
     // --- WIKIPEDIA SUMMARY ---
 
+    /**
+     * GET /api/external/wikipedia?query=...&lang=...
+     * Trả về { "summary": "...", "url": "..." }
+     */
     @GetMapping("/wikipedia")
     public ResponseEntity<Map<String, String>> getWikipediaSummary(
-            @RequestParam("keyword") String keyword,
+            @RequestParam("query") String query,
             @RequestParam(value = "lang", defaultValue = "en") String lang) {
-        
-        String summary = externalApiService.getWikipediaSummary(keyword, lang);
+
+        String summary = externalApiService.getWikipediaSummary(query, lang);
+        String wikiUrl = String.format("https://%s.wikipedia.org/wiki/%s",
+                lang, query.replace(" ", "_"));
         return ResponseEntity.ok(Map.of(
-                "keyword", keyword,
-                "summary", summary
+                "summary", summary,
+                "url", wikiUrl
         ));
     }
 }

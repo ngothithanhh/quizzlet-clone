@@ -75,6 +75,9 @@ export const bePost = <T>(path: string, body?: unknown, token?: string | null) =
 export const bePut = <T>(path: string, body?: unknown, token?: string | null) =>
   beFetch<T>(path, { method: "PUT", body, token });
 
+export const bePatch = <T>(path: string, body?: unknown, token?: string | null) =>
+  beFetch<T>(path, { method: "PATCH", body, token });
+
 export const beDelete = <T>(path: string, token?: string | null) =>
   beFetch<T>(path, { method: "DELETE", token });
 

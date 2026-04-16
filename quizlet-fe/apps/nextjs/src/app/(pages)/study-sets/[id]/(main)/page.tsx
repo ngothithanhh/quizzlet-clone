@@ -44,7 +44,12 @@ export default async function StudySet({ params: { id } }: StudySetProps) {
           <FlashcardsGame />
           <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <CreatedBy user={studySet?.user} />
-            <StudySetCTA userId={studySet?.userId} id={id} />
+            <StudySetCTA
+              userId={String(studySet?.userId ?? "")}
+              id={id}
+              isPublic={studySet?.isPublic}
+              studySetId={studySet?.id}
+            />
           </div>
           <StudySetFlashcards />
           <Link href={`/study-sets/${id}/edit`}>

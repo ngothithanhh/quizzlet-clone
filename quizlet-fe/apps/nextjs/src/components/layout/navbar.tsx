@@ -40,6 +40,11 @@ const Navbar = () => {
             </Button>
           </Link>
         )}
+        <Link href="/search" className="mx-1 hidden md:inline">
+          <Button variant="link" className="text-foreground">
+            Tìm kiếm
+          </Button>
+        </Link>
         <CreateOptionsDropdown />
       </div>
       <div className="flex items-center gap-2">

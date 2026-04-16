@@ -36,4 +36,14 @@ export const userRouter = {
     .mutation(async ({ input, ctx }) => {
       return beDelete(`/api/users/${input.id}`, ctx.token);
     }),
+
+  /** GET /api/users/search */
+  search: protectedProcedure
+    .input(z.object({ query: z.string() }))
+    .query(async ({ input, ctx }) => {
+      if (!input.query.trim()) return [];
+      const params = new URLSearchParams({ q: input.query });
+      const data = await beGet<UserProfileResponse[]>(`/api/users/search?${params}`, ctx.token);
+      return data ?? [];
+    }),
 } satisfies TRPCRouterRecord;

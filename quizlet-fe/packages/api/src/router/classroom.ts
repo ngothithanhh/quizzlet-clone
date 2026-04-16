@@ -11,7 +11,8 @@ export interface ClassMemberResponse {
   username: string;
   email: string;
   avatarUrl?: string;
-  role: "CREATOR" | "MEMBER";
+  role: "TEACHER" | "STUDENT" | "CREATOR" | "MEMBER";
+  isCreator?: boolean;
   joinedAt?: string;
 }
 
@@ -32,11 +33,14 @@ export interface ClassroomResponse {
   description?: string;
   inviteCode: string;
   ownerId: number;
+  ownerUsername?: string;
   memberCount?: number;
   members?: ClassMemberResponse[];
   assignments?: AssignmentResponse[];
   createdAt?: string;
   isCreator?: boolean;
+  /** Role của user hiện tại: "TEACHER" | "STUDENT" | null */
+  currentUserRole?: "TEACHER" | "STUDENT" | null;
 }
 
 export interface SubmissionResponse {
@@ -70,7 +74,8 @@ export const classroomRouter = {
   create: protectedProcedure
     .input(z.object({ name: z.string().min(1), description: z.string().optional() }))
     .mutation(async ({ input, ctx }) => {
-      return bePost<ClassroomResponse>("/api/classes", input, ctx.token);
+      // Backend returns: { classId: number, inviteCode: string }
+      return bePost<{ classId: number; inviteCode: string }>("/api/classes", input, ctx.token);
     }),
 
   /** PUT /api/classes/{id} */
@@ -135,13 +140,17 @@ export const classroomRouter = {
       return beDelete(`/api/classes/${input.classId}/members/${input.userId}`, ctx.token);
     }),
 
-  /** PUT /api/classes/{id}/members/{userId}/role */
+  /** PUT /api/classes/{id}/members/{userId}/role — only Creator */
   updateMemberRole: protectedProcedure
-    .input(z.object({ classId: z.number(), userId: z.number(), role: z.enum(["CREATOR", "MEMBER"]) }))
+    .input(z.object({
+      classId: z.number(),
+      userId: z.number(),
+      role: z.enum(["TEACHER", "STUDENT"]),
+    }))
     .mutation(async ({ input, ctx }) => {
       return bePut<void>(
-        `/api/classes/${input.classId}/members/${input.userId}/role`,
-        { role: input.role },
+        `/api/classes/${input.classId}/members/${input.userId}/role?newRole=${input.role}`,
+        {},
         ctx.token,
       );
     }),
@@ -180,6 +189,29 @@ export const classroomRouter = {
     .mutation(async ({ input, ctx }) => {
       const { assignmentId, ...rest } = input;
       return bePost<SubmissionResponse>(`/api/classes/assignments/${assignmentId}/submit`, rest, ctx.token);
+    }),
+
+  /** GET /api/classes/{id}/studysets */
+  studySets: protectedProcedure
+    .input(z.object({ classId: z.number() }))
+    .query(async ({ input, ctx }) => {
+      // Need StudySetResponse type here, we can use any or fetch it from studySet router
+      const data = await beGet<any[]>(`/api/classes/${input.classId}/studysets`, ctx.token);
+      return data ?? [];
+    }),
+
+  /** POST /api/classes/{id}/studysets/{studySetId} */
+  addStudySet: protectedProcedure
+    .input(z.object({ classId: z.number(), studySetId: z.number() }))
+    .mutation(async ({ input, ctx }) => {
+      return bePost<void>(`/api/classes/${input.classId}/studysets/${input.studySetId}`, undefined, ctx.token);
+    }),
+
+  /** DELETE /api/classes/{id}/studysets/{studySetId} */
+  removeStudySet: protectedProcedure
+    .input(z.object({ classId: z.number(), studySetId: z.number() }))
+    .mutation(async ({ input, ctx }) => {
+      return beDelete(`/api/classes/${input.classId}/studysets/${input.studySetId}`, ctx.token);
     }),
 
   /** GET /api/classes/assignments/{id}/my-result */

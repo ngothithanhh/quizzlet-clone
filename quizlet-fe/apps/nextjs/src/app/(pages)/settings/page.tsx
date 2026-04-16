@@ -4,7 +4,6 @@ import ChangePassword from "~/components/settings/change-password";
 import DarkMode from "~/components/settings/dark-mode";
 import DeleteAccount from "~/components/settings/delete-account";
 import EditProfilePicture from "~/components/settings/edit-profile-picture";
-import ChangePassword from "~/components/settings/change-password";
 
 export const metadata: Metadata = {
   title: "Quizlet - Settings",
