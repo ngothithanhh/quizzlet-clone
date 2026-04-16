@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import {
   CheckCircle2,
   Image as ImageIcon,
@@ -40,20 +40,23 @@ export default function FlashcardToolbar({
   onImageUrl,
   onSpellResult,
 }: FlashcardToolbarProps) {
-  const [ttsAudio, setTtsAudio] = useState<string | null>(null);
-  const [audioEl] = useState(() => (typeof window !== "undefined" ? new Audio() : null));
   const imageInputRef = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
 
-  // TTS
-  const ttsQuery = api.externalApi.tts.useQuery(
-    { text: term, lang: "en" },
-    { enabled: false },
-  );
+  // TTS — use browser's built-in speechSynthesis API
+  // (Google Translate TTS URL gets blocked by CORS)
+  const handleTTS = () => {
+    if (!term || typeof window === "undefined") return;
+    window.speechSynthesis.cancel();
+    const utter = new SpeechSynthesisUtterance(term);
+    utter.lang = "en";
+    utter.rate = 0.9;
+    window.speechSynthesis.speak(utter);
+  };
 
-  // Translate definition → VI
+  // Translate term (Vietnamese) → definition
   const translateQuery = api.externalApi.translate.useQuery(
-    { text: definition, from: "auto", to: "vi" },
+    { text: term, from: "vi", to: "en" },
     { enabled: false },
   );
 
@@ -88,30 +91,15 @@ export default function FlashcardToolbar({
     onError: () => toast.error("Upload audio thất bại"),
   });
 
-  const handleTTS = async () => {
-    if (!term) return;
-    // Nếu đã có audio URL, phát lại
-    if (ttsAudio && audioEl) {
-      audioEl.src = ttsAudio;
-      void audioEl.play();
-      return;
-    }
-    const result = await ttsQuery.refetch();
-    if (result.data?.audioUrl && audioEl) {
-      setTtsAudio(result.data.audioUrl);
-      audioEl.src = result.data.audioUrl;
-      void audioEl.play();
-    }
-  };
-
   const handleTranslate = async () => {
-    if (!definition) return;
+    if (!term) return;
     const result = await translateQuery.refetch();
     if (result.data?.result) {
       onTranslated?.(result.data.result);
       toast.success(`Dịch: "${result.data.result}"`);
     }
   };
+
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -143,16 +131,16 @@ export default function FlashcardToolbar({
     {
       icon: Volume2,
       label: "Nghe phát âm",
-      loading: ttsQuery.isFetching,
+      loading: false,
       disabled: !term,
       onClick: handleTTS,
       color: "text-blue-500 hover:text-blue-600",
     },
     {
       icon: Languages,
-      label: "Dịch sang tiếng Việt",
+      label: "Dịch Term → Definition",
       loading: translateQuery.isFetching,
-      disabled: !definition,
+      disabled: !term,
       onClick: handleTranslate,
       color: "text-green-500 hover:text-green-600",
     },
