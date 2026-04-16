@@ -129,19 +129,27 @@ export default function AssignmentDetailPage() {
     if (submitted) return;
     if (timerRef.current) clearTimeout(timerRef.current);
     const durationSeconds = Math.floor((Date.now() - startTime) / 1000);
-    const answerList = Object.entries(answers).map(([id, a]) => ({
-      flashcardId: Number(id), term: a.term, userAnswer: a.userAnswer, correctAnswer: a.correctAnswer, isCorrect: a.isCorrect,
-    }));
+
+    // Build answer details for ALL questions (including unanswered)
+    const answerList = allCards.map((card) => {
+      const ans = answers[card.id];
+      if (ans) {
+        return { flashcardId: card.id, term: ans.term, userAnswer: ans.userAnswer, correctAnswer: ans.correctAnswer, isCorrect: ans.isCorrect };
+      }
+      // Unanswered question
+      return { flashcardId: card.id, term: card.term, userAnswer: "", correctAnswer: card.definition ?? "", isCorrect: false };
+    });
+
     const correctAnswers = answerList.filter((a) => a.isCorrect).length;
     const totalQuestions = allCards.length;
     const score = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0;
     setSubmitted(true);
-    setSubmittedData({ score, correctAnswers, totalQuestions, allowReview: assignment?.allowReviewAnswers ?? true, answerDetails: answerList });
+    setSubmittedData({ score, correctAnswers, totalQuestions, allowReview: assignment?.allowReviewAnswers !== false, answerDetails: answerList });
     // Switch to history mode so ResultView renders (instead of showing answers on quiz page)
     setMode("history");
     submitMutation.mutate({ assignmentId: aId, score, correctAnswers, totalQuestions, durationSeconds, answers: answerList });
     if (autoSubmit) toast.info("Hết giờ! Bài thi đã được tự động nộp.");
-  }, [submitted, answers, allCards.length, aId, assignment, startTime, submitMutation]);
+  }, [submitted, answers, allCards, aId, assignment, startTime, submitMutation]);
 
   if (loadingAssignment) {
     return <div className="min-h-screen flex items-center justify-center"><Loader2 size={32} className="animate-spin text-indigo-500" /></div>;

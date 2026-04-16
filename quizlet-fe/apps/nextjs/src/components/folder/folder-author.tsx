@@ -11,22 +11,24 @@ import { api } from "~/trpc/react";
 
 const FolderAuthor = () => {
   const { slug }: { slug: string } = useParams();
-  const [{ studySets, user }] = api.folder.bySlug.useSuspenseQuery({ slug });
+  const [folder] = api.folder.bySlug.useSuspenseQuery({ slug });
+
+  const username = (folder as any).username ?? "Anonymous";
+  const userId = folder.userId;
 
   return (
     <div className="flex items-center gap-6">
-      <span className="text-sm">{studySets.length} sets</span>
+      <span className="text-sm">{folder.studySets?.length ?? 0} sets</span>
       <div className="flex items-center gap-2">
         <span className="text-sm font-semibold">created by</span>
-        <Link href={`/users/${user.id}`} className="flex items-center gap-2">
+        <Link href={`/users/${userId}`} className="flex items-center gap-2">
           <Avatar className="h-6 w-6">
-            <AvatarImage src={user.image ?? undefined} alt="user avatar" />
             <AvatarFallback>
               <User size={16} />
             </AvatarFallback>
           </Avatar>
           <Button className="p-0 text-foreground" variant="link">
-            {user.name}
+            {username}
           </Button>
         </Link>
       </div>
