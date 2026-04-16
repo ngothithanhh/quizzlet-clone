@@ -340,6 +340,31 @@ public class ClassServiceImpl implements ClassService {
         submission.setCompletedAt(LocalDateTime.now());
 
         submissionRepo.save(submission);
+
+        // Notify teachers and creator that a student submitted
+        String studentName = userRepo.findById(userId)
+                .map(u -> u.getUsername())
+                .orElse("Học sinh");
+        // Load classroom with members to avoid LazyInitializationException
+        Classroom classroomWithMembers = classRepo.findByIdWithDetails(assignment.getClassroom().getId())
+                .orElse(assignment.getClassroom());
+        if (classroomWithMembers.getMembers() != null) {
+            for (ClassMember cm : classroomWithMembers.getMembers()) {
+                boolean isTeacher = cm.isCreator() ||
+                        (cm.getRole() != null && cm.getRole() == ClassRole.TEACHER);
+                if (isTeacher && !cm.getUser().getId().equals(userId)) {
+                    notificationService.createNotification(
+                            cm.getUser().getId(),
+                            "Học sinh nộp bài: " + assignment.getTitle(),
+                            studentName + " đã nộp bài kiểm tra \"" + assignment.getTitle() + "\".",
+                            NotificationType.ASSIGNMENT_SUBMITTED,
+                            assignment.getId(),
+                            "ASSIGNMENT"
+                    );
+                }
+            }
+        }
+
         return "Nộp bài thành công";
     }
 
