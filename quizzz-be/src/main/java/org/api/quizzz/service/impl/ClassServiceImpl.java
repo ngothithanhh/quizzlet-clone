@@ -6,6 +6,7 @@ import org.api.quizzz.dto.response.*;
 import org.api.quizzz.entity.*;
 import org.api.quizzz.enums.ClassRole;
 import org.api.quizzz.mapper.ClassMapper;
+import org.api.quizzz.mapper.StudySetMapper;
 import org.api.quizzz.repository.*;
 import org.api.quizzz.service.ClassService;
 import org.api.quizzz.service.NotificationService;
@@ -56,7 +57,7 @@ public class ClassServiceImpl implements ClassService {
         cm.setId(new ClassMemberId(c.getId(), userId));
         cm.setClassroom(c);
         cm.setUser(owner);
-        cm.setRole(ClassRole.TEACHER); // Creator mặc định là TEACHER
+        cm.setRole(null); // Người tạo lớp chỉ là chủ lớp (isCreator=true), không có role cụ thể
         cm.setCreator(true);
         memberRepo.save(cm);
 
@@ -67,25 +68,29 @@ public class ClassServiceImpl implements ClassService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public ClassroomResponse getClassDetail(Long classId) {
-        Classroom c = classRepo.findById(classId)
+        Long userId = SecurityUtils.getCurrentUserId();
+        // JOIN FETCH để load owner + members trong 1 query, tránh LazyInit
+        Classroom c = classRepo.findByIdWithDetails(classId)
                 .orElseThrow(() -> new RuntimeException("Class not found"));
-        return ClassMapper.toClassroomResponse(c);
+        return ClassMapper.toClassroomResponse(c, userId);
     }
 
     @Override
-    public List<ClassMemberResponse> getMyClasses() {
+    @Transactional(readOnly = true)
+    public List<ClassroomResponse> getMyClasses() {
         Long userId = SecurityUtils.getCurrentUserId();
-        return memberRepo.findByUserId(userId).stream()
-                .map(ClassMapper::toMemberResponse)
+        // JOIN FETCH classroom + owner + members trong 1 query
+        return memberRepo.findByUserIdWithClassroom(userId).stream()
+                .map(cm -> ClassMapper.toClassroomResponse(cm.getClassroom(), userId))
                 .collect(Collectors.toList());
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<ClassMemberResponse> getClassMembers(Long classId) {
-        classRepo.findById(classId)
-                .orElseThrow(() -> new RuntimeException("Class not found"));
-        return memberRepo.findByClassroomIdAndRole(classId, null).stream()
+        return memberRepo.findByClassroomIdWithUser(classId).stream()
                 .map(ClassMapper::toMemberResponse)
                 .collect(Collectors.toList());
     }
@@ -100,7 +105,7 @@ public class ClassServiceImpl implements ClassService {
                 .orElseThrow(() -> new RuntimeException("Class not found"));
         c.setName(req.getName());
         c.setDescription(req.getDescription());
-        return ClassMapper.toClassroomResponse(classRepo.save(c));
+        return ClassMapper.toClassroomResponse(classRepo.save(c), userId);
     }
 
     @Override
@@ -158,7 +163,15 @@ public class ClassServiceImpl implements ClassService {
     @Transactional
     public String addMember(Long classId, AddMemberRequest req) {
         Long userId = SecurityUtils.getCurrentUserId();
-        if (!canManageClass(userId, classId)) throw new RuntimeException("Forbidden");
+        ClassMember actor = memberRepo.findByClassroomIdAndUserId(classId, userId)
+                .orElseThrow(() -> new RuntimeException("Forbidden: Not a member"));
+
+        // Creator có thể thêm bất kỳ ai; Teacher chỉ được thêm STUDENT
+        if (!actor.isCreator()) {
+            if (actor.getRole() != ClassRole.TEACHER)
+                throw new RuntimeException("Forbidden: Only creator or teacher can add members");
+            req.setRole(ClassRole.STUDENT);
+        }
 
         ClassMemberId id = new ClassMemberId(classId, req.getUserId());
         if (memberRepo.existsById(id)) throw new RuntimeException("User already in class");
@@ -167,21 +180,16 @@ public class ClassServiceImpl implements ClassService {
         cm.setId(id);
         cm.setClassroom(classRepo.getReferenceById(classId));
         cm.setUser(userRepo.getReferenceById(req.getUserId()));
-        cm.setRole(req.getRole());
+        cm.setRole(req.getRole() != null ? req.getRole() : ClassRole.STUDENT);
         cm.setCreator(false);
         memberRepo.save(cm);
 
-        Classroom c = classRepo.findById(classId).get();
-        // Notify the added user
+        Classroom c = classRepo.findById(classId)
+                .orElseThrow(() -> new RuntimeException("Class not found"));
         notificationService.createNotification(
-                req.getUserId(),
-                "Lời mời tham gia lớp học",
+                req.getUserId(), "Lời mời tham gia lớp học",
                 "Bạn đã được thêm vào lớp " + c.getName(),
-                NotificationType.ADDED_TO_CLASS,
-                c.getId(),
-                "CLASS"
-        );
-
+                NotificationType.ADDED_TO_CLASS, c.getId(), "CLASS");
         return "Thêm thành viên thành công";
     }
 
@@ -189,8 +197,28 @@ public class ClassServiceImpl implements ClassService {
     @Transactional
     public void removeMember(Long classId, Long targetUserId) {
         Long userId = SecurityUtils.getCurrentUserId();
-        if (!canManageClass(userId, classId) && !userId.equals(targetUserId))
+
+        if (userId.equals(targetUserId)) {
+            memberRepo.deleteById(new ClassMemberId(classId, targetUserId));
+            return;
+        }
+
+        ClassMember actor = memberRepo.findByClassroomIdAndUserId(classId, userId)
+                .orElseThrow(() -> new RuntimeException("Forbidden"));
+        ClassMember target = memberRepo.findByClassroomIdAndUserId(classId, targetUserId)
+                .orElseThrow(() -> new RuntimeException("Member not found"));
+
+        if (target.isCreator()) throw new RuntimeException("Cannot remove class creator");
+
+        if (actor.isCreator()) {
+            // Creator được xóa tất cả
+        } else if (actor.getRole() == ClassRole.TEACHER) {
+            // Teacher chỉ xóa STUDENT
+            if (target.getRole() != ClassRole.STUDENT)
+                throw new RuntimeException("Forbidden: Teacher can only remove students");
+        } else {
             throw new RuntimeException("Forbidden");
+        }
 
         memberRepo.deleteById(new ClassMemberId(classId, targetUserId));
     }
@@ -215,11 +243,15 @@ public class ClassServiceImpl implements ClassService {
     @Transactional
     public ClassMemberResponse updateMemberRole(Long classId, Long targetUserId, ClassRole newRole) {
         Long userId = SecurityUtils.getCurrentUserId();
-        ClassMember creator = memberRepo.findByClassroomIdAndUserIdAndIsCreatorTrue(classId, userId);
-        if (creator == null) throw new RuntimeException("Forbidden: Only class creator can update roles");
+        // Chỉ Creator được đổi vai trò thành viên
+        ClassMember actorMember = memberRepo.findByClassroomIdAndUserIdAndIsCreatorTrue(classId, userId);
+        if (actorMember == null)
+            throw new RuntimeException("Forbidden: Only class creator can change member roles");
 
         ClassMember target = memberRepo.findByClassroomIdAndUserId(classId, targetUserId)
                 .orElseThrow(() -> new RuntimeException("Member not found in this class"));
+
+        if (target.isCreator()) throw new RuntimeException("Cannot change creator's role");
 
         target.setRole(newRole);
         return ClassMapper.toMemberResponse(memberRepo.save(target));
@@ -233,9 +265,9 @@ public class ClassServiceImpl implements ClassService {
         ClassMember member = memberRepo.findByClassroomIdAndUserId(classId, userId)
                 .orElseThrow(() -> new RuntimeException("Not a member of class"));
 
-        if (member.getRole() != ClassRole.TEACHER && !member.isCreator()) {
+        // Creator và Teacher được tạo bài kiểm tra
+        if (!member.isCreator() && member.getRole() != ClassRole.TEACHER)
             throw new RuntimeException("Forbidden: Only teacher or creator can create assignment");
-        }
 
         Classroom c = classRepo.findById(classId)
                 .orElseThrow(() -> new RuntimeException("Class not found"));
@@ -355,10 +387,80 @@ public class ClassServiceImpl implements ClassService {
                 .collect(Collectors.toList());
     }
 
+    // ========== Study Sets in Class ==========
+
+    @Override
+    public List<StudySetResponse> getStudySetsByClass(Long classId) {
+        Long userId = SecurityUtils.getCurrentUserId();
+        memberRepo.findByClassroomIdAndUserId(classId, userId)
+                .orElseThrow(() -> new RuntimeException("Not a member of this class"));
+
+        Classroom c = classRepo.findById(classId)
+                .orElseThrow(() -> new RuntimeException("Class not found"));
+
+        return c.getStudySets().stream()
+                .map(StudySetMapper::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public String addStudySet(Long classId, Long studySetId) {
+        Long userId = SecurityUtils.getCurrentUserId();
+        ClassMember member = memberRepo.findByClassroomIdAndUserId(classId, userId)
+                .orElseThrow(() -> new RuntimeException("Not a member of this class"));
+
+        if (member.getRole() != ClassRole.TEACHER && !member.isCreator()) {
+            throw new RuntimeException("Forbidden: Only teacher or creator can add study set");
+        }
+
+        Classroom c = classRepo.findById(classId)
+                .orElseThrow(() -> new RuntimeException("Class not found"));
+        StudySet ss = studySetRepo.findById(studySetId)
+                .orElseThrow(() -> new RuntimeException("StudySet not found"));
+
+        if (!ss.getClassrooms().contains(c)) {
+            ss.getClassrooms().add(c);
+            studySetRepo.save(ss);
+        }
+
+        return "Thêm học phần vào lớp thành công";
+    }
+
+    @Override
+    @Transactional
+    public void removeStudySet(Long classId, Long studySetId) {
+        Long userId = SecurityUtils.getCurrentUserId();
+        ClassMember member = memberRepo.findByClassroomIdAndUserId(classId, userId)
+                .orElseThrow(() -> new RuntimeException("Not a member of this class"));
+
+        if (member.getRole() != ClassRole.TEACHER && !member.isCreator()) {
+            throw new RuntimeException("Forbidden: Only teacher or creator can remove study set");
+        }
+
+        Classroom c = classRepo.findById(classId)
+                .orElseThrow(() -> new RuntimeException("Class not found"));
+        StudySet ss = studySetRepo.findById(studySetId)
+                .orElseThrow(() -> new RuntimeException("StudySet not found"));
+
+        if (ss.getClassrooms().contains(c)) {
+            ss.getClassrooms().remove(c);
+            studySetRepo.save(ss);
+        }
+    }
+
     // ========== Helpers ==========
 
+    /** Chỉ Creator quản lý lớp (update/delete/change roles) */
     private boolean canManageClass(Long userId, Long classId) {
         return memberRepo.existsByClassroomIdAndUserIdAndIsCreatorTrue(classId, userId);
+    }
+
+    /** Creator hoặc Teacher được giảng dạy (thêm STUDENT, tạo assignment) */
+    private boolean canTeach(Long userId, Long classId) {
+        ClassMember member = memberRepo.findByClassroomIdAndUserId(classId, userId).orElse(null);
+        if (member == null) return false;
+        return member.isCreator() || member.getRole() == ClassRole.TEACHER;
     }
 
     private String generateCode() {

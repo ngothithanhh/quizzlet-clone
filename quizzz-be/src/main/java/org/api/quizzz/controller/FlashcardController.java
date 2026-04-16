@@ -105,12 +105,22 @@ public class FlashcardController {
     @GetMapping("/api/flashcards/import/template")
     public ResponseEntity<byte[]> downloadTemplate() {
         byte[] excelBytes = flashcardService.downloadTemplate();
-
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(org.springframework.http.MediaType.parseMediaType(
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
         headers.setContentDispositionFormData("attachment", "flashcards_template.xlsx");
-
         return ResponseEntity.ok().headers(headers).body(excelBytes);
     }
+
+    /**
+     * 3.9 Parse flashcard từ file Excel mà KHÔNG lưu vào DB
+     * POST /api/flashcards/parse-excel
+     * Dùng khi tạo mới Study Set từ file Excel.
+     */
+    @PostMapping("/api/flashcards/parse-excel")
+    public ResponseEntity<List<Map<String, String>>> parseExcel(
+            @RequestParam("file") MultipartFile file) {
+        return ResponseEntity.ok(flashcardService.parseExcel(file));
+    }
 }
+

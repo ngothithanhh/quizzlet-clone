@@ -13,7 +13,7 @@ public interface ClassService {
 
     ClassroomResponse getClassDetail(Long classId);
 
-    List<ClassMemberResponse> getMyClasses();
+    List<ClassroomResponse> getMyClasses();
 
     List<ClassMemberResponse> getClassMembers(Long classId);
 
@@ -42,4 +42,8 @@ public interface ClassService {
     AssignmentResultResponse getMyResult(Long assignmentId);
 
     List<SubmissionResponse> getSubmissions(Long assignmentId);
+
+    List<StudySetResponse> getStudySetsByClass(Long classId);
+    String addStudySet(Long classId, Long studySetId);
+    void removeStudySet(Long classId, Long studySetId);
 }

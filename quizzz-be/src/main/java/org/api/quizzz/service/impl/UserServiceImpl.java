@@ -52,4 +52,15 @@ public class UserServiceImpl implements UserService {
         }
         userRepository.deleteById(id);
     }
+
+    @Override
+    public java.util.List<UserProfileResponse> searchUsers(String query) {
+        if (query == null || query.trim().isEmpty()) {
+            return java.util.Collections.emptyList();
+        }
+        return userRepository.findTop10ByUsernameContainingIgnoreCaseOrEmailContainingIgnoreCase(query, query)
+                .stream()
+                .map(UserMapper::mapToProfileResponse)
+                .collect(java.util.stream.Collectors.toList());
+    }
 }

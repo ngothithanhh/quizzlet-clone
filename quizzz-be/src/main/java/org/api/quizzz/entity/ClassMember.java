@@ -25,6 +25,7 @@ public class ClassMember {
     LocalDateTime joinedAt;
 
     @Column(name = "is_creator")
+    @Builder.Default
     boolean isCreator = false;
 
     @JsonIgnore

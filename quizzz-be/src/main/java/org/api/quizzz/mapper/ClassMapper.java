@@ -5,7 +5,20 @@ import org.api.quizzz.entity.*;
 
 public class ClassMapper {
 
-    public static ClassroomResponse toClassroomResponse(Classroom c) {
+    public static ClassroomResponse toClassroomResponse(Classroom c, Long currentUserId) {
+        Boolean isCreator = false;
+        String currentUserRole = null;
+
+        if (c.getMembers() != null && currentUserId != null) {
+            for (ClassMember m : c.getMembers()) {
+                if (currentUserId.equals(m.getUser().getId())) {
+                    isCreator = m.isCreator();
+                    currentUserRole = m.getRole() != null ? m.getRole().name() : null;
+                    break;
+                }
+            }
+        }
+
         return ClassroomResponse.builder()
                 .id(c.getId())
                 .name(c.getName())
@@ -14,6 +27,9 @@ public class ClassMapper {
                 .ownerId(c.getOwner().getId())
                 .ownerUsername(c.getOwner().getUsername())
                 .createdAt(c.getCreatedAt())
+                .memberCount(c.getMembers() != null ? c.getMembers().size() : 0)
+                .isCreator(isCreator)
+                .currentUserRole(currentUserRole)
                 .build();
     }
 
