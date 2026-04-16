@@ -1,12 +1,13 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import {
   CheckCircle2,
   Image as ImageIcon,
   Languages,
   Loader2,
   Music,
+  ArrowRightLeft,
   SpellCheck,
   Volume2,
   XCircle,
@@ -54,11 +55,48 @@ export default function FlashcardToolbar({
     window.speechSynthesis.speak(utter);
   };
 
-  // Translate term (Vietnamese) → definition
+  // Translate: two directions
+  const [translatingViEn, setTranslatingViEn] = useState(false);
+  const [translatingEnVi, setTranslatingEnVi] = useState(false);
+
   const translateQuery = api.externalApi.translate.useQuery(
     { text: term, from: "vi", to: "en" },
     { enabled: false },
   );
+
+  const handleTranslateViEn = async () => {
+    if (!term) return;
+    setTranslatingViEn(true);
+    try {
+      const result = await translateQuery.refetch();
+      if (result.data?.result) {
+        onTranslated?.(result.data.result);
+        toast.success(`VI→EN: "${result.data.result}"`);
+      }
+    } finally {
+      setTranslatingViEn(false);
+    }
+  };
+
+  // EN → VI query
+  const translateEnViQuery = api.externalApi.translate.useQuery(
+    { text: term, from: "en", to: "vi" },
+    { enabled: false },
+  );
+
+  const handleTranslateEnVi = async () => {
+    if (!term) return;
+    setTranslatingEnVi(true);
+    try {
+      const result = await translateEnViQuery.refetch();
+      if (result.data?.result) {
+        onTranslated?.(result.data.result);
+        toast.success(`EN→VI: "${result.data.result}"`);
+      }
+    } finally {
+      setTranslatingEnVi(false);
+    }
+  };
 
   // Spellcheck term
   const spellcheckMutation = api.externalApi.spellcheck.useMutation({
@@ -90,16 +128,6 @@ export default function FlashcardToolbar({
     },
     onError: () => toast.error("Upload audio thất bại"),
   });
-
-  const handleTranslate = async () => {
-    if (!term) return;
-    const result = await translateQuery.refetch();
-    if (result.data?.result) {
-      onTranslated?.(result.data.result);
-      toast.success(`Dịch: "${result.data.result}"`);
-    }
-  };
-
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -138,11 +166,19 @@ export default function FlashcardToolbar({
     },
     {
       icon: Languages,
-      label: "Dịch Term → Definition",
-      loading: translateQuery.isFetching,
+      label: "Dịch VI → EN (ghi vào Definition)",
+      loading: translatingViEn,
       disabled: !term,
-      onClick: handleTranslate,
+      onClick: handleTranslateViEn,
       color: "text-green-500 hover:text-green-600",
+    },
+    {
+      icon: ArrowRightLeft,
+      label: "Dịch EN → VI (ghi vào Definition)",
+      loading: translatingEnVi,
+      disabled: !term,
+      onClick: handleTranslateEnVi,
+      color: "text-teal-500 hover:text-teal-600",
     },
     {
       icon: SpellCheck,
